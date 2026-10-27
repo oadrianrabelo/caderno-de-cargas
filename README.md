@@ -26,16 +26,19 @@ Desinstalar o app ou usar *Limpar dados* apaga tudo. Por isso:
 - **Exportar backup**: gera um `.json` e abre o menu de compartilhar. Mande para o Google Drive,
   para o seu e-mail ou para o WhatsApp.
 - **Importar backup**: escolha o `.json`. **Ele substitui** os dados atuais do aparelho, não mescla.
-- **Nuvem (opcional)**: guarda uma cópia automática num *gist secreto* do GitHub.
-  1. Crie um token em <https://github.com/settings/tokens/new?scopes=gist&description=Caderno%20de%20Cargas>
-     (token *classic*, só a permissão **gist**).
-  2. No app, toque em **Nuvem**, cole o token e toque em **Conectar**.
-  3. Com sinal, o app envia sozinho alguns segundos depois de cada alteração. Sem sinal, ele envia quando a
-     internet voltar (o botão mostra **Nuvem •** quando há algo pendente e **Nuvem ✓** quando está em dia).
-  4. Em outro aparelho, conecte com o mesmo token e toque em **Baixar da nuvem**.
+- **Nuvem (opcional)**: toque em **Nuvem** e escolha **Google Drive** (só no app Android) ou **GitHub Gist**.
+  Com sinal, o app envia uma cópia sozinho alguns segundos depois de cada alteração. Sem sinal, ele envia quando
+  a internet voltar. O botão mostra **Nuvem •** quando há algo pendente e **Nuvem ✓** quando está em dia.
+  Em outro aparelho, conecte na mesma conta e toque em **Baixar da nuvem** (isso substitui os dados do aparelho).
+  Se usar dois aparelhos, o último envio vale.
 
-  Se usar dois aparelhos, o último envio vale. O token fica salvo só no aparelho e não entra no backup
-  exportado. **Desconectar** apaga o token.
+  - **Google Drive**: toque em **Conectar Google Drive** e escolha a conta. O app cria o arquivo
+    `caderno-de-cargas.json` no seu Drive e só tem acesso a esse arquivo (permissão `drive.file`).
+    Exige a configuração única do Google Cloud descrita em [Liberar o Google Drive](#liberar-o-google-drive).
+  - **GitHub Gist**: crie um token em <https://github.com/settings/tokens/new?scopes=gist&description=Caderno%20de%20Cargas>
+    (token *classic*, só a permissão **gist**), abra **Usar GitHub Gist**, cole o token e toque em **Conectar Gist**.
+    O backup fica num gist secreto. O token fica salvo só no aparelho, não entra no backup exportado, e
+    **Desconectar** apaga o token.
 
 ## Gerar o APK localmente
 
@@ -81,6 +84,27 @@ Em *Settings → Secrets and variables → Actions*, crie:
 | `ANDROID_KEY_ALIAS` | `caderno` |
 | `ANDROID_KEY_PASSWORD` | senha da chave (a mesma, se você não definiu outra) |
 
+## Liberar o Google Drive
+
+O Google só entrega o acesso ao Drive para um app cadastrado com o **nome do pacote** e o **SHA-1 do certificado**
+que assinou o APK. Não há servidor nem chave dentro do app. Faça uma vez:
+
+1. Configure a keystore de release (seção acima). O APK debug do CI muda de certificado a cada build e não serve.
+2. Gere uma versão (`git tag v0.1.1 && git push origin v0.1.1`). No resumo da execução do Actions aparece
+   **Certificado do APK** com o `SHA-1`. Também dá para obter localmente com `keytool -list -v -keystore caderno.jks -alias caderno`.
+3. Em <https://console.cloud.google.com/>:
+   1. Crie um projeto (por exemplo, "Caderno de Cargas").
+   2. *APIs e serviços → Biblioteca*: ative a **Google Drive API**.
+   3. *Google Auth Platform → Branding/Público*: tipo **Externo**, preencha o nome do app e o seu e-mail.
+      Em **Público**, adicione sua conta Google como **usuário de teste** (ou publique o app: o escopo `drive.file`
+      não exige verificação do Google).
+   4. *Google Auth Platform → Clientes → Criar cliente*: tipo **Android**, pacote
+      `com.oadrianrabelo.cadernodecargas` e o **SHA-1** do passo 2.
+4. Instale o APK de release e toque em **Nuvem → Conectar Google Drive**.
+
+Se aparecer "Google recusou o acesso" ou "Não consegui falar com o Google", confira o SHA-1, o nome do pacote
+e se a sua conta está entre os usuários de teste. O celular precisa ter o Google Play Services.
+
 ## Estrutura
 
 | Caminho | O que é |
@@ -88,7 +112,8 @@ Em *Settings → Secrets and variables → Actions*, crie:
 | `www/index.html` | o app (fonte da verdade) |
 | `www/logic.js` | lógica pura: próximo treino, última carga, backup, cópia de semanas |
 | `www/native.js` | só no Android: exportar via compartilhar e espelho dos dados |
-| `www/sync.js` | salvamento opcional na nuvem (GitHub Gist) |
+| `www/sync.js` | salvamento opcional na nuvem (Google Drive ou GitHub Gist) |
+| `android/app/src/main/java/.../DriveAuthPlugin.java` | login Google para o Drive (plugin local do Capacitor) |
 | `test/` | testes com `node:test` (`npm test`); `npm run test:e2e` roda o teste no Chromium (precisa do Playwright) |
 | `assets/` | ícone e splash (`halter.svg` é a fonte) |
 | `android/` | projeto Android gerado pelo Capacitor |
