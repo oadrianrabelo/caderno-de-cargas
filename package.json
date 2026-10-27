@@ -4,9 +4,10 @@
   "private": true,
   "description": "Caderno de cargas de academia, offline, empacotado como app Android com Capacitor.",
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/*.test.js",
     "sync": "cap sync android",
-    "apk": "cap sync android && cd android && ./gradlew assembleDebug"
+    "apk": "cap sync android && cd android && ./gradlew assembleDebug",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "license": "UNLICENSED",
   "dependencies": {

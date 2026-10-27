@@ -1,0 +1,3 @@
+#!/bin/sh
+# Roda os testes antes de cada commit.
+npm test --silent
