@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Fonte do ícone: halter branco sobre azul. Os PNGs em assets/ são gerados a partir deste arquivo. -->
+  <rect id="bg" width="1024" height="1024" fill="#1f4fd8"/>
+  <g id="halter" fill="#ffffff" transform="rotate(-35 512 512)">
+    <rect x="300" y="484" width="424" height="56" rx="14"/>
+    <rect x="236" y="332" width="72" height="360" rx="26"/>
+    <rect x="716" y="332" width="72" height="360" rx="26"/>
+    <rect x="176" y="404" width="56" height="216" rx="22"/>
+    <rect x="792" y="404" width="56" height="216" rx="22"/>
+  </g>
+</svg>
