@@ -138,7 +138,24 @@ function persist() {
   const ok = LS.set('cg:logs', JSON.stringify(logs)) && LS.set('cg:custom', JSON.stringify(custom));
   setStatus(ok ? 'Salvo' : 'Não consegui salvar');
   $('warn').hidden = ok;
+  if (ok) CGApp.saved.forEach((f) => { try { f(); } catch (e) { /* extensão opcional */ } });
 }
+function applyBackup(text) {
+  const o = CG.parseBackup(text);
+  if (!o) return false;
+  logs = o.logs; custom = o.custom;
+  flushNow(); pickStart(); render();
+  return true;
+}
+// Ponte para os scripts opcionais (native.js, sync.js). Sem eles o app funciona igual.
+const CGApp = window.CGApp = {
+  saved: [],
+  snapshot: () => CG.serializeBackup(logs, custom),
+  restore: applyBackup,
+  // render() já cria o treino do dia vazio (t = 0); só conta o que foi preenchido.
+  isEmpty: () => !Object.keys(custom).length && Object.values(logs).every((l) => !l || !l.t),
+  status: (t) => setStatus(t)
+};
 function schedule() { setStatus('Salvando…'); clearTimeout(saveTimer); saveTimer = setTimeout(persist, 300); }
 function flushNow() { clearTimeout(saveTimer); persist(); }
 addEventListener('pagehide', flushNow);
@@ -360,11 +377,13 @@ $('bedit').addEventListener('click', () => { editing = !editing; flushNow(); ren
 
 $('bexp').addEventListener('click', () => {
   flushNow();
-  const blob = new Blob([JSON.stringify({ v: 1, logs, custom })], { type: 'application/json' });
+  const json = CG.serializeBackup(logs, custom), name = CG.backupFileName(new Date());
+  // No app Android, <a download> não funciona no WebView: grava o arquivo e abre o menu de compartilhar.
+  if (window.CGNative) { CGNative.shareBackup(name, json).then(setStatus, () => setStatus('Não consegui exportar')); return; }
+  const blob = new Blob([json], { type: 'application/json' });
   const a = document.createElement('a');
-  const d = new Date();
   a.href = URL.createObjectURL(blob);
-  a.download = 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
+  a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   setStatus('Backup exportado');
@@ -375,10 +394,8 @@ $('fimp').addEventListener('change', () => {
   if (!f) return;
   const r = new FileReader();
   r.onload = () => {
-    const o = parse(r.result, null);
-    if (!o || typeof o.logs !== 'object') { setStatus('Arquivo inválido'); return; }
-    logs = o.logs; custom = o.custom && typeof o.custom === 'object' ? o.custom : {};
-    flushNow(); pickStart(); render(); setStatus('Backup importado');
+    if (!applyBackup(r.result)) { setStatus('Arquivo inválido'); return; }
+    setStatus('Backup importado');
   };
   r.readAsText(f);
   $('fimp').value = '';
@@ -390,5 +407,7 @@ render();
 setStatus(storageOk ? 'Pronto' : 'Sem armazenamento');
 try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) { /* opcional */ }
 </script>
+<script src="native.js"></script>
+<script src="sync.js"></script>
 </body>
 </html>
