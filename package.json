@@ -1,0 +1,21 @@
+{
+  "name": "caderno-de-cargas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Caderno de cargas de academia, offline, empacotado como app Android com Capacitor.",
+  "scripts": {
+    "test": "node --test test/",
+    "sync": "cap sync android",
+    "apk": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/share": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}

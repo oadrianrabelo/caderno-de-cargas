@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Caderno de Cargas</title>
+<style>
+:root {
+  --bg: #eceff2; --card: #ffffff; --ink: #14191f; --mute: #5d6773; --line: #d5dae0;
+  --accent: #1f4fd8; --accent-ink: #ffffff; --done: #1d7f4e; --done-bg: #e1f3e9; --field: #f5f7f9; --danger: #b3261e;
+  --f-display: "Roboto Condensed", "Arial Narrow", sans-serif-condensed, system-ui, sans-serif;
+  --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1217; --card: #171d24; --ink: #eaeef2; --mute: #96a1ad; --line: #2a323b; --accent: #7b9cff; --accent-ink: #0b1020; --done: #5fd593; --done-bg: #123325; --field: #1e252d; --danger: #ff8a80; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(--f-body); padding: 0 max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 560px; margin: 0 auto; }
+.top { position: sticky; top: 0; z-index: 9; background: var(--bg); padding: max(12px, env(safe-area-inset-top, 0px)) 0 10px; border-bottom: 1px solid var(--line); }
+.row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font: 700 15px/1 var(--f-display); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+.week { display: flex; align-items: center; gap: 4px; }
+.week button { width: 44px; height: 44px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; font: 600 20px/1 var(--f-body); cursor: pointer; }
+.week button:disabled { opacity: .35; }
+.week .wl { min-width: 96px; text-align: center; font: 700 22px/1 var(--f-display); letter-spacing: .04em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
+.tab { position: relative; height: 46px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; font: 700 18px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tab .dot { position: absolute; top: 5px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--done); }
+.head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 18px 0 10px; }
+.head h1 { margin: 0; font: 700 30px/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; }
+.sub { color: var(--mute); font-size: 14px; }
+.prog { font: 600 14px/1 var(--f-body); color: var(--mute); font-variant-numeric: tabular-nums; }
+.bar { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; margin-bottom: 14px; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--done); transition: width .2s; }
+.list { display: flex; flex-direction: column; gap: 12px; }
+.ex { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px; min-width: 0; }
+.exh { display: flex; gap: 12px; align-items: flex-start; }
+.idx { flex: none; width: 28px; height: 28px; border-radius: 6px; background: var(--field); color: var(--mute); display: grid; place-items: center; font: 700 16px/1 var(--f-display); }
+.exn { min-width: 0; flex: 1; }
+.exn h2 { margin: 0; font: 600 18px/1.2 var(--f-body); overflow-wrap: anywhere; }
+.meta { margin-top: 3px; color: var(--mute); font-size: 14px; font-variant-numeric: tabular-nums; }
+.swap { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px 40px; }
+.chip { border: 1px solid var(--line); background: var(--field); color: var(--mute); border-radius: 999px; padding: 6px 11px; font: 500 13px/1.2 var(--f-body); cursor: pointer; text-align: left; }
+.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: transparent; font-weight: 600; }
+.sets { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.set { display: grid; grid-template-columns: 30px 1fr 14px 1fr 52px; gap: 8px; align-items: center; }
+.sl { font: 700 16px/1 var(--f-display); color: var(--mute); text-align: center; letter-spacing: .04em; }
+.fld { position: relative; }
+.fld input { width: 100%; height: 52px; border: 1px solid var(--line); background: var(--field); color: var(--ink); border-radius: 8px; padding: 0 30px 0 12px; font: 600 22px/1 var(--f-body); font-variant-numeric: tabular-nums; }
+.fld input::placeholder { color: var(--mute); opacity: .55; font-weight: 500; }
+.fld small { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: var(--mute); font-size: 12px; pointer-events: none; }
+.x { text-align: center; color: var(--mute); font-weight: 600; }
+.ck { height: 52px; width: 52px; border: 1px solid var(--line); background: var(--card); color: var(--mute); border-radius: 8px; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.ck svg { width: 24px; height: 24px; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.set.done .ck { background: var(--done-bg); border-color: var(--done); color: var(--done); }
+.set.done input { border-color: var(--done); }
+.tip { margin: 14px 0 0; color: var(--mute); font-size: 13px; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.btn { min-height: 44px; padding: 0 14px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; font: 600 14px/1 var(--f-body); cursor: pointer; }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.dng { color: var(--danger); }
+.foot { margin-top: 12px; color: var(--mute); font-size: 13px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.warn { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; font-size: 14px; }
+.ed { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ed .nm { width: 100%; height: 48px; border: 1px solid var(--line); background: var(--field); color: var(--ink); border-radius: 8px; padding: 0 12px; font: 600 17px/1 var(--f-body); }
+.ed .r2 { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; align-items: end; }
+.ed label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--mute); min-width: 0; }
+.ed label input { height: 44px; width: 100%; border: 1px solid var(--line); background: var(--field); color: var(--ink); border-radius: 8px; padding: 0 10px; font: 600 16px/1 var(--f-body); }
+.step { display: flex; align-items: center; gap: 4px; }
+.step button { width: 40px; height: 44px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; font: 700 20px/1 var(--f-body); cursor: pointer; }
+.step b { min-width: 22px; text-align: center; font: 700 20px/1 var(--f-display); }
+.ed .r3 { display: flex; gap: 8px; flex-wrap: wrap; }
+.ed .r3 .btn { min-height: 40px; }
+.edtop { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+@media (max-width: 380px) { .set { grid-template-columns: 24px 1fr 10px 1fr 48px; gap: 6px; } .ck { width: 48px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="row1">
+      <div class="brand">Caderno de Cargas</div>
+      <div class="week">
+        <button id="wprev" aria-label="Semana anterior">‹</button>
+        <div class="wl" id="wl">Semana 1</div>
+        <button id="wnext" aria-label="Próxima semana">›</button>
+      </div>
+    </div>
+    <div class="tabs" id="tabs" role="tablist"></div>
+  </header>
+  <main>
+    <div class="head">
+      <h1 id="title">Upper</h1>
+      <div class="prog" id="prog"></div>
+    </div>
+    <div class="bar"><i id="barfill"></i></div>
+    <div id="edtop" class="edtop" hidden></div>
+    <div class="list" id="list"></div>
+    <p class="tip" id="tip">Toque no ✓ com os campos vazios para repetir o que você fez da última vez. Os números cinza são o treino anterior.</p>
+    <div class="tools">
+      <button class="btn" id="bedit" type="button">Editar treino</button>
+      <button class="btn" id="bexp" type="button">Exportar backup</button>
+      <button class="btn" id="bimp" type="button">Importar backup</button>
+      <input type="file" id="fimp" accept=".json,application/json" hidden>
+    </div>
+    <div class="warn" id="warn" hidden>Este navegador não está guardando dados. Use "Exportar backup" depois de cada treino.</div>
+    <div class="foot"><span id="sub"></span><span id="status"></span></div>
+  </main>
+</div>
+
+<script>
+const P = {"1":{"upper":[{"n":"45° Incline Barbell Press","s":2,"r":"6-8","t":"3-5 min","a":["45° Incline DB Press","45° Incline Machine Press"]},{"n":"Cable Crossover Ladder","s":2,"r":"8-10","t":"1-2 min","a":["Pec Deck","Bottom-Half DB Flye"]},{"n":"Wide-Grip Pull-Up","s":2,"r":"8-10","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Dual-Handle Lat Pulldown"]},{"n":"High-Cable Lateral Raise","s":2,"r":"8-10","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Pendlay Deficit Row","s":2,"r":"6-8","t":"2-3 min","a":["Smith Machine Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"8-10","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Squat","s":2,"r":"6-8","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"Barbell RDL","s":2,"r":"6-8","t":"2-3 min","a":["DB RDL","Snatch-Grip RDL"]},{"n":"Leg Extension","s":2,"r":"8-10","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Standing Calf Raise","s":2,"r":"6-8","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]},{"n":"Cable Crunch","s":2,"r":"8-10","t":"1-2 min","a":["Decline Weighted Crunch","Machine Crunch"]}],"pull":[{"n":"Neutral-Grip Lat Pulldown","s":2,"r":"8-10","t":"2-3 min","a":["Neutral-Grip Pull-Up","Dual-Handle Lat Pulldown"]},{"n":"Chest-Supported Machine Row","s":2,"r":"8-10","t":"2-3 min","a":["Chest-Supported T-Bar Row","Incline Chest-Supported DB Row"]},{"n":"Neutral-Grip Seated Cable Row","s":2,"r":"10-12","t":"2-3 min","a":["Helms Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":2,"r":"10-12","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Machine Shrug","s":2,"r":"10-12","t":"1-2 min","a":["Cable Paused Shrug-In","DB Shrug"]},{"n":"EZ-Bar Cable Curl","s":2,"r":"10-12","t":"1-2 min","a":["EZ-Bar Curl","DB Curl"]},{"n":"Machine Preacher Curl","s":1,"r":"12-15","t":"1-2 min","a":["EZ-Bar Preacher Curl","DB Preacher Curl"]}],"push":[{"n":"Barbell Bench Press","s":2,"r":"8-10","t":"3-5 min","a":["Machine Chest Press","DB Bench Press"]},{"n":"Machine Shoulder Press","s":2,"r":"8-10","t":"2-3 min","a":["Cable Shoulder Press","Seated DB Shoulder Press"]},{"n":"Bottom-Half DB Flye","s":2,"r":"10-12","t":"1-2 min","a":["Bottom-Half Seated Cable Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Cable Triceps Kickback","s":1,"r":"12-15","t":"1-2 min","a":["DB Triceps Kickback","Bench Dip"]},{"n":"Roman Chair Leg Raise","s":2,"r":"10-20","t":"1-2 min","a":["Hanging Leg Raise","Modified Candlestick"]}],"legs":[{"n":"Leg Press","s":2,"r":"8-10","t":"2-3 min","a":["Smith Machine Static Lunge","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":2,"r":"10-12","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"DB Bulgarian Split Squat","s":2,"r":"8-10","t":"2-3 min","a":["DB Step-Up","Goblet Squat"]},{"n":"Leg Extension","s":2,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":2,"r":"10-12","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"2":{"upper":[{"n":"45° Incline Barbell Press","s":3,"r":"6-8","t":"3-5 min","a":["45° Incline DB Press","45° Incline Machine Press"]},{"n":"Cable Crossover Ladder","s":2,"r":"8-10","t":"1-2 min","a":["Pec Deck","Bottom-Half DB Flye"]},{"n":"Wide-Grip Pull-Up","s":3,"r":"8-10","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Dual-Handle Lat Pulldown"]},{"n":"High-Cable Lateral Raise","s":2,"r":"8-10","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Pendlay Deficit Row","s":2,"r":"6-8","t":"2-3 min","a":["Smith Machine Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"8-10","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Squat","s":3,"r":"6-8","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"Barbell RDL","s":3,"r":"6-8","t":"2-3 min","a":["DB RDL","Snatch-Grip RDL"]},{"n":"Leg Extension","s":2,"r":"8-10","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Standing Calf Raise","s":2,"r":"6-8","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]},{"n":"Cable Crunch","s":2,"r":"8-10","t":"1-2 min","a":["Decline Weighted Crunch","Machine Crunch"]}],"pull":[{"n":"Neutral-Grip Lat Pulldown","s":2,"r":"8-10","t":"2-3 min","a":["Neutral-Grip Pull-Up","Dual-Handle Lat Pulldown"]},{"n":"Chest-Supported Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Chest-Supported T-Bar Row","Incline Chest-Supported DB Row"]},{"n":"Neutral-Grip Seated Cable Row","s":2,"r":"10-12","t":"2-3 min","a":["Helms Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":2,"r":"10-12","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Machine Shrug","s":2,"r":"10-12","t":"1-2 min","a":["Cable Paused Shrug-In","DB Shrug"]},{"n":"EZ-Bar Cable Curl","s":2,"r":"10-12","t":"1-2 min","a":["EZ-Bar Curl","DB Curl"]},{"n":"Machine Preacher Curl","s":1,"r":"12-15","t":"1-2 min","a":["EZ-Bar Preacher Curl","DB Preacher Curl"]}],"push":[{"n":"Barbell Bench Press","s":3,"r":"8-10","t":"3-5 min","a":["Machine Chest Press","DB Bench Press"]},{"n":"Machine Shoulder Press","s":2,"r":"8-10","t":"2-3 min","a":["Cable Shoulder Press","Seated DB Shoulder Press"]},{"n":"Bottom-Half DB Flye","s":2,"r":"10-12","t":"1-2 min","a":["Bottom-Half Seated Cable Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Cable Triceps Kickback","s":1,"r":"12-15","t":"1-2 min","a":["DB Triceps Kickback","Bench Dip"]},{"n":"Roman Chair Leg Raise","s":2,"r":"10-20","t":"1-2 min","a":["Hanging Leg Raise","Modified Candlestick"]}],"legs":[{"n":"Leg Press","s":3,"r":"8-10","t":"2-3 min","a":["Smith Machine Static Lunge","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":2,"r":"10-12","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"DB Bulgarian Split Squat","s":2,"r":"8-10","t":"2-3 min","a":["DB Step-Up","Goblet Squat"]},{"n":"Leg Extension","s":2,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":2,"r":"10-12","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"3":{"upper":[{"n":"45° Incline Barbell Press","s":3,"r":"6-8","t":"3-5 min","a":["45° Incline DB Press","45° Incline Machine Press"]},{"n":"Cable Crossover Ladder","s":2,"r":"8-10","t":"1-2 min","a":["Pec Deck","Bottom-Half DB Flye"]},{"n":"Wide-Grip Pull-Up","s":3,"r":"8-10","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Dual-Handle Lat Pulldown"]},{"n":"High-Cable Lateral Raise","s":2,"r":"8-10","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Pendlay Deficit Row","s":2,"r":"6-8","t":"2-3 min","a":["Smith Machine Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"8-10","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Squat","s":3,"r":"6-8","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"Barbell RDL","s":3,"r":"6-8","t":"2-3 min","a":["DB RDL","Snatch-Grip RDL"]},{"n":"Leg Extension","s":2,"r":"8-10","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Standing Calf Raise","s":2,"r":"6-8","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]},{"n":"Cable Crunch","s":2,"r":"8-10","t":"1-2 min","a":["Decline Weighted Crunch","Machine Crunch"]}],"pull":[{"n":"Neutral-Grip Lat Pulldown","s":2,"r":"8-10","t":"2-3 min","a":["Neutral-Grip Pull-Up","Dual-Handle Lat Pulldown"]},{"n":"Chest-Supported Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Chest-Supported T-Bar Row","Incline Chest-Supported DB Row"]},{"n":"Neutral-Grip Seated Cable Row","s":2,"r":"10-12","t":"2-3 min","a":["Helms Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":2,"r":"10-12","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Machine Shrug","s":2,"r":"10-12","t":"1-2 min","a":["Cable Paused Shrug-In","DB Shrug"]},{"n":"EZ-Bar Cable Curl","s":2,"r":"10-12","t":"1-2 min","a":["EZ-Bar Curl","DB Curl"]},{"n":"Machine Preacher Curl","s":1,"r":"12-15","t":"1-2 min","a":["EZ-Bar Preacher Curl","DB Preacher Curl"]}],"push":[{"n":"Barbell Bench Press","s":3,"r":"8-10","t":"3-5 min","a":["Machine Chest Press","DB Bench Press"]},{"n":"Machine Shoulder Press","s":2,"r":"8-10","t":"2-3 min","a":["Cable Shoulder Press","Seated DB Shoulder Press"]},{"n":"Bottom-Half DB Flye","s":2,"r":"10-12","t":"1-2 min","a":["Bottom-Half Seated Cable Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Cable Triceps Kickback","s":1,"r":"12-15","t":"1-2 min","a":["DB Triceps Kickback","Bench Dip"]},{"n":"Roman Chair Leg Raise","s":2,"r":"10-20","t":"1-2 min","a":["Hanging Leg Raise","Modified Candlestick"]}],"legs":[{"n":"Leg Press","s":3,"r":"8-10","t":"2-3 min","a":["Smith Machine Static Lunge","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":2,"r":"10-12","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"DB Bulgarian Split Squat","s":2,"r":"8-10","t":"2-3 min","a":["DB Step-Up","Goblet Squat"]},{"n":"Leg Extension","s":2,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":2,"r":"10-12","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"4":{"upper":[{"n":"45° Incline Barbell Press","s":3,"r":"6-8","t":"3-5 min","a":["45° Incline DB Press","45° Incline Machine Press"]},{"n":"Cable Crossover Ladder","s":2,"r":"8-10","t":"1-2 min","a":["Pec Deck","Bottom-Half DB Flye"]},{"n":"Wide-Grip Pull-Up","s":3,"r":"8-10","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Dual-Handle Lat Pulldown"]},{"n":"High-Cable Lateral Raise","s":2,"r":"8-10","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Pendlay Deficit Row","s":2,"r":"6-8","t":"2-3 min","a":["Smith Machine Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"8-10","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Squat","s":3,"r":"6-8","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"Barbell RDL","s":3,"r":"6-8","t":"2-3 min","a":["DB RDL","Snatch-Grip RDL"]},{"n":"Leg Extension","s":2,"r":"8-10","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Standing Calf Raise","s":2,"r":"6-8","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]},{"n":"Cable Crunch","s":2,"r":"8-10","t":"1-2 min","a":["Decline Weighted Crunch","Machine Crunch"]}],"pull":[{"n":"Neutral-Grip Lat Pulldown","s":2,"r":"8-10","t":"2-3 min","a":["Neutral-Grip Pull-Up","Dual-Handle Lat Pulldown"]},{"n":"Chest-Supported Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Chest-Supported T-Bar Row","Incline Chest-Supported DB Row"]},{"n":"Neutral-Grip Seated Cable Row","s":2,"r":"10-12","t":"2-3 min","a":["Helms Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":2,"r":"10-12","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Machine Shrug","s":2,"r":"10-12","t":"1-2 min","a":["Cable Paused Shrug-In","DB Shrug"]},{"n":"EZ-Bar Cable Curl","s":2,"r":"10-12","t":"1-2 min","a":["EZ-Bar Curl","DB Curl"]},{"n":"Machine Preacher Curl","s":1,"r":"12-15","t":"1-2 min","a":["EZ-Bar Preacher Curl","DB Preacher Curl"]}],"push":[{"n":"Barbell Bench Press","s":3,"r":"8-10","t":"3-5 min","a":["Machine Chest Press","DB Bench Press"]},{"n":"Machine Shoulder Press","s":2,"r":"8-10","t":"2-3 min","a":["Cable Shoulder Press","Seated DB Shoulder Press"]},{"n":"Bottom-Half DB Flye","s":2,"r":"10-12","t":"1-2 min","a":["Bottom-Half Seated Cable Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Cable Triceps Kickback","s":1,"r":"12-15","t":"1-2 min","a":["DB Triceps Kickback","Bench Dip"]},{"n":"Roman Chair Leg Raise","s":2,"r":"10-20","t":"1-2 min","a":["Hanging Leg Raise","Modified Candlestick"]}],"legs":[{"n":"Leg Press","s":3,"r":"8-10","t":"2-3 min","a":["Smith Machine Static Lunge","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":2,"r":"10-12","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"DB Bulgarian Split Squat","s":2,"r":"8-10","t":"2-3 min","a":["DB Step-Up","Goblet Squat"]},{"n":"Leg Extension","s":2,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":2,"r":"10-12","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"5":{"upper":[{"n":"45° Incline Barbell Press","s":3,"r":"6-8","t":"3-5 min","a":["45° Incline DB Press","45° Incline Machine Press"]},{"n":"Cable Crossover Ladder","s":2,"r":"8-10","t":"1-2 min","a":["Pec Deck","Bottom-Half DB Flye"]},{"n":"Wide-Grip Pull-Up","s":3,"r":"8-10","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Dual-Handle Lat Pulldown"]},{"n":"High-Cable Lateral Raise","s":2,"r":"8-10","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Pendlay Deficit Row","s":2,"r":"6-8","t":"2-3 min","a":["Smith Machine Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"8-10","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":2,"r":"8-10","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Squat","s":3,"r":"6-8","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"Barbell RDL","s":3,"r":"6-8","t":"2-3 min","a":["DB RDL","Snatch-Grip RDL"]},{"n":"Leg Extension","s":2,"r":"8-10","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Standing Calf Raise","s":2,"r":"6-8","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]},{"n":"Cable Crunch","s":2,"r":"8-10","t":"1-2 min","a":["Decline Weighted Crunch","Machine Crunch"]}],"pull":[{"n":"Neutral-Grip Lat Pulldown","s":2,"r":"8-10","t":"2-3 min","a":["Neutral-Grip Pull-Up","Dual-Handle Lat Pulldown"]},{"n":"Chest-Supported Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Chest-Supported T-Bar Row","Incline Chest-Supported DB Row"]},{"n":"Neutral-Grip Seated Cable Row","s":2,"r":"10-12","t":"2-3 min","a":["Helms Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":2,"r":"10-12","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Machine Shrug","s":2,"r":"10-12","t":"1-2 min","a":["Cable Paused Shrug-In","DB Shrug"]},{"n":"EZ-Bar Cable Curl","s":2,"r":"10-12","t":"1-2 min","a":["EZ-Bar Curl","DB Curl"]},{"n":"Machine Preacher Curl","s":1,"r":"12-15","t":"1-2 min","a":["EZ-Bar Preacher Curl","DB Preacher Curl"]}],"push":[{"n":"Barbell Bench Press","s":3,"r":"8-10","t":"3-5 min","a":["Machine Chest Press","DB Bench Press"]},{"n":"Machine Shoulder Press","s":2,"r":"8-10","t":"2-3 min","a":["Cable Shoulder Press","Seated DB Shoulder Press"]},{"n":"Bottom-Half DB Flye","s":2,"r":"10-12","t":"1-2 min","a":["Bottom-Half Seated Cable Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Cable Triceps Kickback","s":1,"r":"12-15","t":"1-2 min","a":["DB Triceps Kickback","Bench Dip"]},{"n":"Roman Chair Leg Raise","s":2,"r":"10-20","t":"1-2 min","a":["Hanging Leg Raise","Modified Candlestick"]}],"legs":[{"n":"Leg Press","s":3,"r":"8-10","t":"2-3 min","a":["Smith Machine Static Lunge","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":2,"r":"10-12","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"DB Bulgarian Split Squat","s":2,"r":"8-10","t":"2-3 min","a":["DB Step-Up","Goblet Squat"]},{"n":"Leg Extension","s":2,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":2,"r":"10-12","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":2,"r":"10-12","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"6":{"upper":[{"n":"45° Incline DB Press","s":2,"r":"8-10","t":"3-5 min","a":["45° Incline Barbell Press","45° Incline Machine Press"]},{"n":"Pec Deck","s":2,"r":"10-12","t":"1-2 min","a":["Cable Crossover Ladder","Bottom-Half DB Flye"]},{"n":"Dual-Handle Lat Pulldown","s":2,"r":"10-12","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Wide-Grip Pull-Up"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Smith Machine Row","s":2,"r":"8-10","t":"2-3 min","a":["Pendlay Deficit Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":2,"r":"10-12","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":2,"r":"10-12","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Static Lunge w/ Elevated Front Foot","s":2,"r":"8-10","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"45° Hyperextension","s":2,"r":"8-10","t":"2-3 min","a":["Glute-Ham Raise","Cable Pull-Through"]},{"n":"Leg Extension","s":2,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Leg Press Calf Press","s":2,"r":"8-10","t":"1-2 min","a":["Seated Calf Raise","Standing Calf Raise"]},{"n":"Machine Crunch","s":2,"r":"10-12","t":"1-2 min","a":["Decline Weighted Crunch","Cable Crunch"]}],"pull":[{"n":"Lean-Back Lat Pulldown","s":2,"r":"10-12","t":"2-3 min","a":["Lean-Back Machine Pulldown","Pull-Up"]},{"n":"Chest-Supported T-Bar Row","s":2,"r":"10-12","t":"2-3 min","a":["Chest-Supported Machine Row","Incline Chest-Supported DB Row"]},{"n":"Dual-Handle Elbows-Out Cable Row","s":2,"r":"12-15","t":"2-3 min","a":["Arm-Out Single-Arm DB Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":2,"r":"12-15","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Cable Paused Shrug-In","s":2,"r":"12-15","t":"1-2 min","a":["Machine Shrug","DB Shrug"]},{"n":"Cable Rope Hammer Curl","s":2,"r":"12-15","t":"1-2 min","a":["DB Hammer Curl","Hammer Preacher Curl"]},{"n":"DB Concentration Curl","s":1,"r":"15-20","t":"1-2 min","a":["Concentration Cable Curl","DB Preacher Curl"]}],"push":[{"n":"Machine Chest Press","s":2,"r":"10-12","t":"3-5 min","a":["Barbell Bench Press","DB Bench Press"]},{"n":"Seated DB Shoulder Press","s":2,"r":"10-12","t":"2-3 min","a":["Cable Shoulder Press","Machine Shoulder Press"]},{"n":"Bottom-Half Seated Cable Flye","s":2,"r":"12-15","t":"1-2 min","a":["Bottom-Half DB Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":2,"r":"12-15","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"EZ-Bar Skull Crusher","s":2,"r":"12-15","t":"1-2 min","a":["DB Skull Crusher","Katana Triceps Extension"]},{"n":"Triceps Pressdown (Bar)","s":1,"r":"15-20","t":"1-2 min","a":["Triceps Pressdown (Rope)","DB Triceps Kickback"]},{"n":"Ab Wheel Rollout","s":2,"r":"12-15","t":"1-2 min","a":["Swiss Ball Rollout","Long-Lever Plank"]}],"legs":[{"n":"Hack Squat","s":2,"r":"10-12","t":"2-3 min","a":["Leg Press","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":2,"r":"12-15","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"Walking Lunge","s":2,"r":"10-12","t":"2-3 min","a":["Smith Machine Static Lunge","DB Static Lunge"]},{"n":"Leg Extension","s":2,"r":"12-15","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":2,"r":"12-15","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":2,"r":"12-15","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":2,"r":"12-15","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"7":{"upper":[{"n":"45° Incline DB Press","s":3,"r":"8-10","t":"3-5 min","a":["45° Incline Barbell Press","45° Incline Machine Press"]},{"n":"Pec Deck","s":3,"r":"10-12","t":"1-2 min","a":["Cable Crossover Ladder","Bottom-Half DB Flye"]},{"n":"Dual-Handle Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Wide-Grip Pull-Up"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Smith Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Pendlay Deficit Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":2,"r":"10-12","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":2,"r":"10-12","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Static Lunge w/ Elevated Front Foot","s":3,"r":"8-10","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"45° Hyperextension","s":3,"r":"8-10","t":"2-3 min","a":["Glute-Ham Raise","Cable Pull-Through"]},{"n":"Leg Extension","s":3,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Leg Press Calf Press","s":3,"r":"8-10","t":"1-2 min","a":["Seated Calf Raise","Standing Calf Raise"]},{"n":"Machine Crunch","s":2,"r":"10-12","t":"1-2 min","a":["Decline Weighted Crunch","Cable Crunch"]}],"pull":[{"n":"Lean-Back Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Lean-Back Machine Pulldown","Pull-Up"]},{"n":"Chest-Supported T-Bar Row","s":3,"r":"10-12","t":"2-3 min","a":["Chest-Supported Machine Row","Incline Chest-Supported DB Row"]},{"n":"Dual-Handle Elbows-Out Cable Row","s":2,"r":"12-15","t":"2-3 min","a":["Arm-Out Single-Arm DB Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":3,"r":"12-15","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Cable Paused Shrug-In","s":2,"r":"12-15","t":"1-2 min","a":["Machine Shrug","DB Shrug"]},{"n":"Cable Rope Hammer Curl","s":3,"r":"12-15","t":"1-2 min","a":["DB Hammer Curl","Hammer Preacher Curl"]},{"n":"DB Concentration Curl","s":2,"r":"15-20","t":"1-2 min","a":["Concentration Cable Curl","DB Preacher Curl"]}],"push":[{"n":"Machine Chest Press","s":3,"r":"10-12","t":"3-5 min","a":["Barbell Bench Press","DB Bench Press"]},{"n":"Seated DB Shoulder Press","s":3,"r":"10-12","t":"2-3 min","a":["Cable Shoulder Press","Machine Shoulder Press"]},{"n":"Bottom-Half Seated Cable Flye","s":2,"r":"12-15","t":"1-2 min","a":["Bottom-Half DB Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":2,"r":"12-15","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"EZ-Bar Skull Crusher","s":3,"r":"12-15","t":"1-2 min","a":["DB Skull Crusher","Katana Triceps Extension"]},{"n":"Triceps Pressdown (Bar)","s":2,"r":"15-20","t":"1-2 min","a":["Triceps Pressdown (Rope)","DB Triceps Kickback"]},{"n":"Ab Wheel Rollout","s":2,"r":"12-15","t":"1-2 min","a":["Swiss Ball Rollout","Long-Lever Plank"]}],"legs":[{"n":"Hack Squat","s":3,"r":"10-12","t":"2-3 min","a":["Leg Press","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":3,"r":"12-15","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"Walking Lunge","s":2,"r":"10-12","t":"2-3 min","a":["Smith Machine Static Lunge","DB Static Lunge"]},{"n":"Leg Extension","s":2,"r":"12-15","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":2,"r":"12-15","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":2,"r":"12-15","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":2,"r":"12-15","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"8":{"upper":[{"n":"45° Incline DB Press","s":3,"r":"8-10","t":"3-5 min","a":["45° Incline Barbell Press","45° Incline Machine Press"]},{"n":"Pec Deck","s":3,"r":"10-12","t":"1-2 min","a":["Cable Crossover Ladder","Bottom-Half DB Flye"]},{"n":"Dual-Handle Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Wide-Grip Pull-Up"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Smith Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Pendlay Deficit Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":2,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":2,"r":"10-12","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":2,"r":"10-12","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Static Lunge w/ Elevated Front Foot","s":3,"r":"8-10","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"45° Hyperextension","s":3,"r":"8-10","t":"2-3 min","a":["Glute-Ham Raise","Cable Pull-Through"]},{"n":"Leg Extension","s":3,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Leg Press Calf Press","s":3,"r":"8-10","t":"1-2 min","a":["Seated Calf Raise","Standing Calf Raise"]},{"n":"Machine Crunch","s":2,"r":"10-12","t":"1-2 min","a":["Decline Weighted Crunch","Cable Crunch"]}],"pull":[{"n":"Lean-Back Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Lean-Back Machine Pulldown","Pull-Up"]},{"n":"Chest-Supported T-Bar Row","s":3,"r":"10-12","t":"2-3 min","a":["Chest-Supported Machine Row","Incline Chest-Supported DB Row"]},{"n":"Dual-Handle Elbows-Out Cable Row","s":2,"r":"12-15","t":"2-3 min","a":["Arm-Out Single-Arm DB Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":3,"r":"12-15","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Cable Paused Shrug-In","s":2,"r":"12-15","t":"1-2 min","a":["Machine Shrug","DB Shrug"]},{"n":"Cable Rope Hammer Curl","s":3,"r":"12-15","t":"1-2 min","a":["DB Hammer Curl","Hammer Preacher Curl"]},{"n":"DB Concentration Curl","s":2,"r":"15-20","t":"1-2 min","a":["Concentration Cable Curl","DB Preacher Curl"]}],"push":[{"n":"Machine Chest Press","s":3,"r":"10-12","t":"3-5 min","a":["Barbell Bench Press","DB Bench Press"]},{"n":"Seated DB Shoulder Press","s":3,"r":"10-12","t":"2-3 min","a":["Cable Shoulder Press","Machine Shoulder Press"]},{"n":"Bottom-Half Seated Cable Flye","s":2,"r":"12-15","t":"1-2 min","a":["Bottom-Half DB Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":2,"r":"12-15","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"EZ-Bar Skull Crusher","s":3,"r":"12-15","t":"1-2 min","a":["DB Skull Crusher","Katana Triceps Extension"]},{"n":"Triceps Pressdown (Bar)","s":2,"r":"15-20","t":"1-2 min","a":["Triceps Pressdown (Rope)","DB Triceps Kickback"]},{"n":"Ab Wheel Rollout","s":2,"r":"12-15","t":"1-2 min","a":["Swiss Ball Rollout","Long-Lever Plank"]}],"legs":[{"n":"Hack Squat","s":3,"r":"10-12","t":"2-3 min","a":["Leg Press","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":3,"r":"12-15","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"Walking Lunge","s":2,"r":"10-12","t":"2-3 min","a":["Smith Machine Static Lunge","DB Static Lunge"]},{"n":"Leg Extension","s":2,"r":"12-15","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":2,"r":"12-15","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":2,"r":"12-15","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":2,"r":"12-15","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"9":{"upper":[{"n":"45° Incline DB Press","s":3,"r":"8-10","t":"3-5 min","a":["45° Incline Barbell Press","45° Incline Machine Press"]},{"n":"Pec Deck","s":3,"r":"10-12","t":"1-2 min","a":["Cable Crossover Ladder","Bottom-Half DB Flye"]},{"n":"Dual-Handle Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Wide-Grip Pull-Up"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Smith Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Pendlay Deficit Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":3,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":3,"r":"10-12","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":3,"r":"10-12","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Static Lunge w/ Elevated Front Foot","s":3,"r":"8-10","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"45° Hyperextension","s":3,"r":"8-10","t":"2-3 min","a":["Glute-Ham Raise","Cable Pull-Through"]},{"n":"Leg Extension","s":3,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Leg Press Calf Press","s":3,"r":"8-10","t":"1-2 min","a":["Seated Calf Raise","Standing Calf Raise"]},{"n":"Machine Crunch","s":3,"r":"10-12","t":"1-2 min","a":["Decline Weighted Crunch","Cable Crunch"]}],"pull":[{"n":"Lean-Back Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Lean-Back Machine Pulldown","Pull-Up"]},{"n":"Chest-Supported T-Bar Row","s":3,"r":"10-12","t":"2-3 min","a":["Chest-Supported Machine Row","Incline Chest-Supported DB Row"]},{"n":"Dual-Handle Elbows-Out Cable Row","s":3,"r":"12-15","t":"2-3 min","a":["Arm-Out Single-Arm DB Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":3,"r":"12-15","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Cable Paused Shrug-In","s":3,"r":"12-15","t":"1-2 min","a":["Machine Shrug","DB Shrug"]},{"n":"Cable Rope Hammer Curl","s":3,"r":"12-15","t":"1-2 min","a":["DB Hammer Curl","Hammer Preacher Curl"]},{"n":"DB Concentration Curl","s":2,"r":"15-20","t":"1-2 min","a":["Concentration Cable Curl","DB Preacher Curl"]}],"push":[{"n":"Machine Chest Press","s":3,"r":"10-12","t":"3-5 min","a":["Barbell Bench Press","DB Bench Press"]},{"n":"Seated DB Shoulder Press","s":3,"r":"10-12","t":"2-3 min","a":["Cable Shoulder Press","Machine Shoulder Press"]},{"n":"Bottom-Half Seated Cable Flye","s":3,"r":"12-15","t":"1-2 min","a":["Bottom-Half DB Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":3,"r":"12-15","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"EZ-Bar Skull Crusher","s":3,"r":"12-15","t":"1-2 min","a":["DB Skull Crusher","Katana Triceps Extension"]},{"n":"Triceps Pressdown (Bar)","s":2,"r":"15-20","t":"1-2 min","a":["Triceps Pressdown (Rope)","DB Triceps Kickback"]},{"n":"Ab Wheel Rollout","s":3,"r":"12-15","t":"1-2 min","a":["Swiss Ball Rollout","Long-Lever Plank"]}],"legs":[{"n":"Hack Squat","s":3,"r":"10-12","t":"2-3 min","a":["Leg Press","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":3,"r":"12-15","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"Walking Lunge","s":2,"r":"10-12","t":"2-3 min","a":["Smith Machine Static Lunge","DB Static Lunge"]},{"n":"Leg Extension","s":3,"r":"12-15","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":3,"r":"12-15","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":3,"r":"12-15","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":3,"r":"12-15","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"10":{"upper":[{"n":"45° Incline DB Press","s":3,"r":"8-10","t":"3-5 min","a":["45° Incline Barbell Press","45° Incline Machine Press"]},{"n":"Pec Deck","s":3,"r":"10-12","t":"1-2 min","a":["Cable Crossover Ladder","Bottom-Half DB Flye"]},{"n":"Dual-Handle Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Wide-Grip Pull-Up"]},{"n":"High-Cable Lateral Raise","s":2,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Smith Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Pendlay Deficit Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":3,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":3,"r":"10-12","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":3,"r":"10-12","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Static Lunge w/ Elevated Front Foot","s":3,"r":"8-10","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"45° Hyperextension","s":3,"r":"8-10","t":"2-3 min","a":["Glute-Ham Raise","Cable Pull-Through"]},{"n":"Leg Extension","s":3,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Leg Press Calf Press","s":3,"r":"8-10","t":"1-2 min","a":["Seated Calf Raise","Standing Calf Raise"]},{"n":"Machine Crunch","s":3,"r":"10-12","t":"1-2 min","a":["Decline Weighted Crunch","Cable Crunch"]}],"pull":[{"n":"Lean-Back Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Lean-Back Machine Pulldown","Pull-Up"]},{"n":"Chest-Supported T-Bar Row","s":3,"r":"10-12","t":"2-3 min","a":["Chest-Supported Machine Row","Incline Chest-Supported DB Row"]},{"n":"Dual-Handle Elbows-Out Cable Row","s":3,"r":"12-15","t":"2-3 min","a":["Arm-Out Single-Arm DB Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":3,"r":"12-15","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Cable Paused Shrug-In","s":3,"r":"12-15","t":"1-2 min","a":["Machine Shrug","DB Shrug"]},{"n":"Cable Rope Hammer Curl","s":3,"r":"12-15","t":"1-2 min","a":["DB Hammer Curl","Hammer Preacher Curl"]},{"n":"DB Concentration Curl","s":2,"r":"15-20","t":"1-2 min","a":["Concentration Cable Curl","DB Preacher Curl"]}],"push":[{"n":"Machine Chest Press","s":3,"r":"10-12","t":"3-5 min","a":["Barbell Bench Press","DB Bench Press"]},{"n":"Seated DB Shoulder Press","s":3,"r":"10-12","t":"2-3 min","a":["Cable Shoulder Press","Machine Shoulder Press"]},{"n":"Bottom-Half Seated Cable Flye","s":3,"r":"12-15","t":"1-2 min","a":["Bottom-Half DB Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":3,"r":"12-15","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"EZ-Bar Skull Crusher","s":3,"r":"12-15","t":"1-2 min","a":["DB Skull Crusher","Katana Triceps Extension"]},{"n":"Triceps Pressdown (Bar)","s":2,"r":"15-20","t":"1-2 min","a":["Triceps Pressdown (Rope)","DB Triceps Kickback"]},{"n":"Ab Wheel Rollout","s":3,"r":"12-15","t":"1-2 min","a":["Swiss Ball Rollout","Long-Lever Plank"]}],"legs":[{"n":"Hack Squat","s":3,"r":"10-12","t":"2-3 min","a":["Leg Press","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":3,"r":"12-15","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"Walking Lunge","s":2,"r":"10-12","t":"2-3 min","a":["Smith Machine Static Lunge","DB Static Lunge"]},{"n":"Leg Extension","s":3,"r":"12-15","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":3,"r":"12-15","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":3,"r":"12-15","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":3,"r":"12-15","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"11":{"upper":[{"n":"45° Incline DB Press","s":4,"r":"8-10","t":"3-5 min","a":["45° Incline Barbell Press","45° Incline Machine Press"]},{"n":"Pec Deck","s":3,"r":"10-12","t":"1-2 min","a":["Cable Crossover Ladder","Bottom-Half DB Flye"]},{"n":"Dual-Handle Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Wide-Grip Pull-Up"]},{"n":"High-Cable Lateral Raise","s":3,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Smith Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Pendlay Deficit Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":3,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":3,"r":"10-12","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":3,"r":"10-12","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Static Lunge w/ Elevated Front Foot","s":3,"r":"8-10","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"45° Hyperextension","s":4,"r":"8-10","t":"2-3 min","a":["Glute-Ham Raise","Cable Pull-Through"]},{"n":"Leg Extension","s":3,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Leg Press Calf Press","s":4,"r":"8-10","t":"1-2 min","a":["Seated Calf Raise","Standing Calf Raise"]},{"n":"Machine Crunch","s":3,"r":"10-12","t":"1-2 min","a":["Decline Weighted Crunch","Cable Crunch"]}],"pull":[{"n":"Lean-Back Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Lean-Back Machine Pulldown","Pull-Up"]},{"n":"Chest-Supported T-Bar Row","s":4,"r":"10-12","t":"2-3 min","a":["Chest-Supported Machine Row","Incline Chest-Supported DB Row"]},{"n":"Dual-Handle Elbows-Out Cable Row","s":3,"r":"12-15","t":"2-3 min","a":["Arm-Out Single-Arm DB Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":3,"r":"12-15","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Cable Paused Shrug-In","s":3,"r":"12-15","t":"1-2 min","a":["Machine Shrug","DB Shrug"]},{"n":"Cable Rope Hammer Curl","s":3,"r":"12-15","t":"1-2 min","a":["DB Hammer Curl","Hammer Preacher Curl"]},{"n":"DB Concentration Curl","s":3,"r":"15-20","t":"1-2 min","a":["Concentration Cable Curl","DB Preacher Curl"]}],"push":[{"n":"Machine Chest Press","s":4,"r":"10-12","t":"3-5 min","a":["Barbell Bench Press","DB Bench Press"]},{"n":"Seated DB Shoulder Press","s":3,"r":"10-12","t":"2-3 min","a":["Cable Shoulder Press","Machine Shoulder Press"]},{"n":"Bottom-Half Seated Cable Flye","s":3,"r":"12-15","t":"1-2 min","a":["Bottom-Half DB Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":3,"r":"12-15","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"EZ-Bar Skull Crusher","s":3,"r":"12-15","t":"1-2 min","a":["DB Skull Crusher","Katana Triceps Extension"]},{"n":"Triceps Pressdown (Bar)","s":3,"r":"15-20","t":"1-2 min","a":["Triceps Pressdown (Rope)","DB Triceps Kickback"]},{"n":"Ab Wheel Rollout","s":3,"r":"12-15","t":"1-2 min","a":["Swiss Ball Rollout","Long-Lever Plank"]}],"legs":[{"n":"Hack Squat","s":4,"r":"10-12","t":"2-3 min","a":["Leg Press","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":4,"r":"12-15","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"Walking Lunge","s":2,"r":"10-12","t":"2-3 min","a":["Smith Machine Static Lunge","DB Static Lunge"]},{"n":"Leg Extension","s":3,"r":"12-15","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":3,"r":"12-15","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":3,"r":"12-15","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":3,"r":"12-15","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]},"12":{"upper":[{"n":"45° Incline DB Press","s":4,"r":"8-10","t":"3-5 min","a":["45° Incline Barbell Press","45° Incline Machine Press"]},{"n":"Pec Deck","s":3,"r":"10-12","t":"1-2 min","a":["Cable Crossover Ladder","Bottom-Half DB Flye"]},{"n":"Dual-Handle Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Wide-Grip Lat Pulldown","Wide-Grip Pull-Up"]},{"n":"High-Cable Lateral Raise","s":3,"r":"10-12","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"Smith Machine Row","s":3,"r":"8-10","t":"2-3 min","a":["Pendlay Deficit Row","Single-Arm DB Row"]},{"n":"Overhead Cable Triceps Extension (Bar)","s":3,"r":"10-12","t":"1-2 min","a":["Overhead Cable Triceps Extension (Rope)","DB Skull Crusher"]},{"n":"Bayesian Cable Curl","s":3,"r":"10-12","t":"1-2 min","a":["Seated Super-Bayesian High Cable Curl","Incline DB Stretch Curl"]}],"lower":[{"n":"Lying Leg Curl","s":3,"r":"10-12","t":"1-2 min","a":["Seated Leg Curl","Nordic Ham Curl"]},{"n":"Smith Machine Static Lunge w/ Elevated Front Foot","s":3,"r":"8-10","t":"3-5 min","a":["DB Bulgarian Split Squat","High-Bar Back Squat"]},{"n":"45° Hyperextension","s":4,"r":"8-10","t":"2-3 min","a":["Glute-Ham Raise","Cable Pull-Through"]},{"n":"Leg Extension","s":3,"r":"10-12","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Leg Press Calf Press","s":4,"r":"8-10","t":"1-2 min","a":["Seated Calf Raise","Standing Calf Raise"]},{"n":"Machine Crunch","s":3,"r":"10-12","t":"1-2 min","a":["Decline Weighted Crunch","Cable Crunch"]}],"pull":[{"n":"Lean-Back Lat Pulldown","s":3,"r":"10-12","t":"2-3 min","a":["Lean-Back Machine Pulldown","Pull-Up"]},{"n":"Chest-Supported T-Bar Row","s":4,"r":"10-12","t":"2-3 min","a":["Chest-Supported Machine Row","Incline Chest-Supported DB Row"]},{"n":"Dual-Handle Elbows-Out Cable Row","s":3,"r":"12-15","t":"2-3 min","a":["Arm-Out Single-Arm DB Row","Meadows Row"]},{"n":"1-Arm 45° Cable Rear Delt Flye","s":3,"r":"12-15","t":"1-2 min","a":["Rope Face Pull","Reverse Pec Deck"]},{"n":"Cable Paused Shrug-In","s":3,"r":"12-15","t":"1-2 min","a":["Machine Shrug","DB Shrug"]},{"n":"Cable Rope Hammer Curl","s":3,"r":"12-15","t":"1-2 min","a":["DB Hammer Curl","Hammer Preacher Curl"]},{"n":"DB Concentration Curl","s":3,"r":"15-20","t":"1-2 min","a":["Concentration Cable Curl","DB Preacher Curl"]}],"push":[{"n":"Machine Chest Press","s":4,"r":"10-12","t":"3-5 min","a":["Barbell Bench Press","DB Bench Press"]},{"n":"Seated DB Shoulder Press","s":3,"r":"10-12","t":"2-3 min","a":["Cable Shoulder Press","Machine Shoulder Press"]},{"n":"Bottom-Half Seated Cable Flye","s":3,"r":"12-15","t":"1-2 min","a":["Bottom-Half DB Flye","Low-to-High Cable Crossover"]},{"n":"High-Cable Lateral Raise","s":3,"r":"12-15","t":"1-2 min","a":["High-Cable Cuffed Lateral Raise","Lean-In DB Lateral Raise"]},{"n":"EZ-Bar Skull Crusher","s":3,"r":"12-15","t":"1-2 min","a":["DB Skull Crusher","Katana Triceps Extension"]},{"n":"Triceps Pressdown (Bar)","s":3,"r":"15-20","t":"1-2 min","a":["Triceps Pressdown (Rope)","DB Triceps Kickback"]},{"n":"Ab Wheel Rollout","s":3,"r":"12-15","t":"1-2 min","a":["Swiss Ball Rollout","Long-Lever Plank"]}],"legs":[{"n":"Hack Squat","s":4,"r":"10-12","t":"2-3 min","a":["Leg Press","DB Walking Lunge"]},{"n":"Seated Leg Curl","s":4,"r":"12-15","t":"1-2 min","a":["Lying Leg Curl","Nordic Ham Curl"]},{"n":"Walking Lunge","s":2,"r":"10-12","t":"2-3 min","a":["Smith Machine Static Lunge","DB Static Lunge"]},{"n":"Leg Extension","s":3,"r":"12-15","t":"1-2 min","a":["Reverse Nordic","Sissy Squat"]},{"n":"Machine Hip Adduction","s":3,"r":"12-15","t":"1-2 min","a":["Cable Hip Adduction","Copenhagen Hip Adduction"]},{"n":"Machine Hip Abduction","s":3,"r":"12-15","t":"1-2 min","a":["Cable Hip Abduction","Lateral Band Walk"]},{"n":"Standing Calf Raise","s":3,"r":"12-15","t":"1-2 min","a":["Seated Calf Raise","Leg Press Calf Press"]}]}};
+const ORDER = ['upper', 'lower', 'pull', 'push', 'legs'];
+const NAMES = { upper: 'Upper', lower: 'Lower', pull: 'Pull', push: 'Push', legs: 'Legs' };
+const FOCUS = { upper: 'Foco em força', lower: 'Foco em força', pull: 'Foco em hipertrofia', push: 'Foco em hipertrofia', legs: 'Foco em hipertrofia' };
+const $ = (id) => document.getElementById(id);
+const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const LS = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+};
+const parse = (s, d) => { try { const v = JSON.parse(s); return v && typeof v === 'object' ? v : d; } catch (e) { return d; } };
+
+let logs = parse(LS.get('cg:logs'), {});
+let custom = parse(LS.get('cg:custom'), {});
+let week = 1, day = 'upper', editing = false, saveTimer = null;
+const storageOk = LS.set('cg:probe', '1');
+
+function setStatus(t) { $('status').textContent = t; }
+function persist() {
+  const ok = LS.set('cg:logs', JSON.stringify(logs)) && LS.set('cg:custom', JSON.stringify(custom));
+  setStatus(ok ? 'Salvo' : 'Não consegui salvar');
+  $('warn').hidden = ok;
+}
+function schedule() { setStatus('Salvando…'); clearTimeout(saveTimer); saveTimer = setTimeout(persist, 300); }
+function flushNow() { clearTimeout(saveTimer); persist(); }
+addEventListener('pagehide', flushNow);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushNow(); });
+
+function baseList(w, d) { return P[w][d].map((e, i) => ({ id: 'o' + i, n: e.n, s: e.s, r: e.r, t: e.t, a: e.a })); }
+const ckey = () => week + '-' + day;
+function getList() { return custom[ckey()] || baseList(week, day); }
+function editList() { const k = ckey(); if (!custom[k]) custom[k] = baseList(week, day); return custom[k]; }
+
+function getDoc() {
+  const k = ckey();
+  if (!logs[k]) {
+    const d = new Date();
+    const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    logs[k] = { week, day, date: iso, t: 0, ex: {} };
+  }
+  return logs[k];
+}
+function getEx(doc, id, name) { if (!doc.ex[id]) doc.ex[id] = { used: name, sets: {} }; return doc.ex[id]; }
+function touch(doc) { doc.t = Date.now(); schedule(); }
+
+function lastFor(name, exceptKey) {
+  let best = null;
+  for (const k in logs) {
+    if (k === exceptKey || !logs[k] || !logs[k].ex) continue;
+    for (const id in logs[k].ex) {
+      const x = logs[k].ex[id];
+      if (!x || x.used !== name) continue;
+      if (!Object.values(x.sets || {}).some((s) => s && (s.kg || s.reps))) continue;
+      if (!best || (logs[k].t || 0) > best.t) best = { t: logs[k].t || 0, sets: x.sets };
+    }
+  }
+  return best ? best.sets : null;
+}
+
+function progress() {
+  const list = getList(), doc = getDoc();
+  let total = 0, done = 0;
+  list.forEach((ex) => {
+    total += ex.s;
+    const e = doc.ex[ex.id];
+    if (e) for (let s = 0; s < ex.s; s++) if (e.sets[s] && e.sets[s].done) done++;
+  });
+  $('prog').textContent = done + ' de ' + total + ' séries';
+  $('barfill').style.width = (total ? (done / total) * 100 : 0) + '%';
+}
+
+function renderTabs() {
+  const tabs = $('tabs');
+  tabs.textContent = '';
+  ORDER.forEach((d) => {
+    const b = mk('button', 'tab', NAMES[d]);
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(d === day));
+    const lg = logs[week + '-' + d];
+    if (lg && Object.values(lg.ex || {}).some((x) => Object.values(x.sets || {}).some((s) => s && s.done))) b.appendChild(mk('span', 'dot'));
+    b.addEventListener('click', () => { day = d; render(); scrollTo(0, 0); });
+    tabs.appendChild(b);
+  });
+}
+
+function setRow(ex, i, s, used, last, doc) {
+  const cur = (doc.ex[ex.id] && doc.ex[ex.id].sets[s]) || {};
+  const lastSet = last ? (last[s] || last[Object.keys(last).pop()]) : null;
+  const row = mk('div', 'set' + (cur.done ? ' done' : ''));
+  row.appendChild(mk('div', 'sl', 'S' + (s + 1)));
+
+  const f1 = mk('div', 'fld'), kg = mk('input');
+  kg.type = 'number'; kg.inputMode = 'decimal'; kg.step = '0.5'; kg.min = '0'; kg.value = cur.kg || '';
+  kg.placeholder = lastSet && lastSet.kg ? String(lastSet.kg) : '0';
+  kg.setAttribute('aria-label', 'Carga, série ' + (s + 1) + ', ' + used);
+  f1.appendChild(kg); f1.appendChild(mk('small', null, 'kg'));
+
+  const f2 = mk('div', 'fld'), rp = mk('input');
+  rp.type = 'number'; rp.inputMode = 'numeric'; rp.step = '1'; rp.min = '0'; rp.value = cur.reps || '';
+  rp.placeholder = lastSet && lastSet.reps ? String(lastSet.reps) : '0';
+  rp.setAttribute('aria-label', 'Repetições, série ' + (s + 1) + ', ' + used);
+  f2.appendChild(rp); f2.appendChild(mk('small', null, 'rep'));
+
+  const ck = mk('button', 'ck'); ck.type = 'button'; ck.innerHTML = CHECK;
+  ck.setAttribute('aria-label', 'Marcar série ' + (s + 1) + ' como feita');
+  ck.setAttribute('aria-pressed', String(!!cur.done));
+
+  const write = (patch) => {
+    const e = getEx(doc, ex.id, ex.n);
+    e.used = used;
+    e.sets[s] = Object.assign({ kg: '', reps: '', done: false }, e.sets[s], patch);
+    touch(doc); progress();
+  };
+  kg.addEventListener('input', () => write({ kg: kg.value }));
+  rp.addEventListener('input', () => write({ reps: rp.value }));
+  ck.addEventListener('click', () => {
+    const now = (doc.ex[ex.id] && doc.ex[ex.id].sets[s]) || {};
+    if (!now.done) {
+      if (!kg.value && lastSet && lastSet.kg) kg.value = lastSet.kg;
+      if (!rp.value && lastSet && lastSet.reps) rp.value = lastSet.reps;
+    }
+    const nd = !now.done;
+    write({ kg: kg.value, reps: rp.value, done: nd });
+    row.classList.toggle('done', nd);
+    ck.setAttribute('aria-pressed', String(nd));
+    renderTabs();
+  });
+  row.append(f1, mk('div', 'x', '×'), f2, ck);
+  return row;
+}
+
+function editor(ex, i, list) {
+  const box = mk('div', 'ed');
+  const nm = mk('input', 'nm'); nm.type = 'text'; nm.value = ex.n; nm.setAttribute('aria-label', 'Nome do exercício');
+  nm.addEventListener('input', () => {
+    ex.n = nm.value;
+    const e = getDoc().ex[ex.id];
+    if (e) e.used = nm.value;
+    schedule();
+  });
+  box.appendChild(nm);
+
+  const r2 = mk('div', 'r2');
+  const lab1 = mk('label'); lab1.appendChild(document.createTextNode('Séries'));
+  const st = mk('div', 'step');
+  const mn = mk('button', null, '−'), val = mk('b', null, String(ex.s)), pl = mk('button', null, '+');
+  mn.type = 'button'; pl.type = 'button';
+  mn.setAttribute('aria-label', 'Menos uma série'); pl.setAttribute('aria-label', 'Mais uma série');
+  mn.addEventListener('click', () => { if (ex.s > 1) { ex.s--; schedule(); render(); } });
+  pl.addEventListener('click', () => { if (ex.s < 8) { ex.s++; schedule(); render(); } });
+  st.append(mn, val, pl); lab1.appendChild(st);
+  const lab2 = mk('label'); lab2.appendChild(document.createTextNode('Repetições'));
+  const rr = mk('input'); rr.type = 'text'; rr.value = ex.r; rr.addEventListener('input', () => { ex.r = rr.value; schedule(); });
+  lab2.appendChild(rr);
+  const lab3 = mk('label'); lab3.appendChild(document.createTextNode('Descanso'));
+  const tt = mk('input'); tt.type = 'text'; tt.value = ex.t; tt.addEventListener('input', () => { ex.t = tt.value; schedule(); });
+  lab3.appendChild(tt);
+  r2.append(lab1, lab2, lab3);
+  box.appendChild(r2);
+
+  const r3 = mk('div', 'r3');
+  const up = mk('button', 'btn', '↑ Subir'), dn = mk('button', 'btn', '↓ Descer'), rm = mk('button', 'btn dng', 'Remover');
+  [up, dn, rm].forEach((b) => { b.type = 'button'; });
+  up.disabled = i === 0; dn.disabled = i === list.length - 1;
+  up.addEventListener('click', () => { list.splice(i - 1, 0, list.splice(i, 1)[0]); schedule(); render(); });
+  dn.addEventListener('click', () => { list.splice(i + 1, 0, list.splice(i, 1)[0]); schedule(); render(); });
+  let armed = false, tm = null;
+  rm.addEventListener('click', () => {
+    if (!armed) { armed = true; rm.textContent = 'Toque de novo para remover'; tm = setTimeout(() => { armed = false; rm.textContent = 'Remover'; }, 3000); return; }
+    clearTimeout(tm); list.splice(i, 1); schedule(); render();
+  });
+  r3.append(up, dn, rm);
+  box.appendChild(r3);
+  return box;
+}
+
+function renderList() {
+  const listEl = $('list');
+  listEl.textContent = '';
+  const doc = getDoc(), k = ckey();
+  const list = editing ? editList() : getList();
+  list.forEach((ex, i) => {
+    const used = (doc.ex[ex.id] && doc.ex[ex.id].used) || ex.n;
+    const card = mk('section', 'ex');
+    const h = mk('div', 'exh');
+    h.appendChild(mk('div', 'idx', String(i + 1)));
+    const nmBox = mk('div', 'exn');
+    if (!editing) nmBox.appendChild(mk('h2', null, used));
+    nmBox.appendChild(mk('div', 'meta', ex.s + ' séries · ' + ex.r + ' reps · descanso ' + ex.t));
+    h.appendChild(nmBox);
+    card.appendChild(h);
+
+    if (editing) { card.appendChild(editor(ex, i, list)); listEl.appendChild(card); return; }
+
+    if (ex.a && ex.a.length) {
+      const sw = mk('div', 'swap');
+      [ex.n].concat(ex.a).forEach((opt) => {
+        const c = mk('button', 'chip', opt); c.type = 'button';
+        c.setAttribute('aria-pressed', String(opt === used));
+        c.addEventListener('click', () => { const e = getEx(doc, ex.id, ex.n); e.used = opt; touch(doc); renderList(); });
+        sw.appendChild(c);
+      });
+      card.appendChild(sw);
+    }
+    const last = lastFor(used, k);
+    const sets = mk('div', 'sets');
+    for (let s = 0; s < ex.s; s++) sets.appendChild(setRow(ex, i, s, used, last, doc));
+    card.appendChild(sets);
+    listEl.appendChild(card);
+  });
+  if (editing) {
+    const add = mk('button', 'btn pri', '+ Adicionar exercício'); add.type = 'button';
+    add.addEventListener('click', () => { list.push({ id: 'n' + Date.now(), n: 'Novo exercício', s: 2, r: '8-12', t: '2 min', a: [] }); schedule(); render(); });
+    listEl.appendChild(add);
+  }
+}
+
+function renderEdTop() {
+  const t = $('edtop');
+  t.textContent = '';
+  t.hidden = !editing;
+  if (!editing) return;
+  const rep = mk('button', 'btn', 'Repetir nas próximas semanas'); rep.type = 'button';
+  rep.addEventListener('click', () => {
+    const src = JSON.parse(JSON.stringify(editList()));
+    for (let w = week + 1; w <= 12; w++) custom[w + '-' + day] = JSON.parse(JSON.stringify(src));
+    schedule(); setStatus(week < 12 ? 'Copiado para as semanas ' + (week + 1) + ' a 12' : 'Já é a última semana');
+  });
+  const res = mk('button', 'btn dng', 'Restaurar original'); res.type = 'button';
+  let armed = false, tm = null;
+  res.addEventListener('click', () => {
+    if (!armed) { armed = true; res.textContent = 'Toque de novo para restaurar'; tm = setTimeout(() => { armed = false; res.textContent = 'Restaurar original'; }, 3000); return; }
+    clearTimeout(tm); delete custom[ckey()]; schedule(); render();
+  });
+  t.append(rep, res);
+}
+
+function render() {
+  $('wl').textContent = 'Semana ' + week;
+  $('wprev').disabled = week <= 1;
+  $('wnext').disabled = week >= 12;
+  $('title').textContent = NAMES[day];
+  $('sub').textContent = FOCUS[day] + (week === 1 ? ' · adaptação' : '') + (week === 6 ? ' · bloco Ramping' : '') + (custom[ckey()] ? ' · editado' : '');
+  $('bedit').textContent = editing ? 'Concluir edição' : 'Editar treino';
+  $('bedit').className = editing ? 'btn pri' : 'btn';
+  $('tip').hidden = editing;
+  renderTabs(); renderEdTop(); renderList(); progress();
+}
+
+function pickStart() {
+  let latest = null;
+  for (const k in logs) {
+    const l = logs[k];
+    if (!l || !l.t || !Object.values(l.ex || {}).some((x) => Object.values(x.sets || {}).some((s) => s && s.done))) continue;
+    if (!latest || l.t > latest.t) latest = l;
+  }
+  if (!latest) return;
+  const idx = ORDER.indexOf(latest.day);
+  if (idx < ORDER.length - 1) { week = latest.week; day = ORDER[idx + 1]; }
+  else { week = Math.min(12, latest.week + 1); day = 'upper'; }
+}
+
+$('wprev').addEventListener('click', () => { if (week > 1) { week--; render(); } });
+$('wnext').addEventListener('click', () => { if (week < 12) { week++; render(); } });
+$('bedit').addEventListener('click', () => { editing = !editing; flushNow(); render(); });
+
+$('bexp').addEventListener('click', () => {
+  flushNow();
+  const blob = new Blob([JSON.stringify({ v: 1, logs, custom })], { type: 'application/json' });
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  setStatus('Backup exportado');
+});
+$('bimp').addEventListener('click', () => $('fimp').click());
+$('fimp').addEventListener('change', () => {
+  const f = $('fimp').files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const o = parse(r.result, null);
+    if (!o || typeof o.logs !== 'object') { setStatus('Arquivo inválido'); return; }
+    logs = o.logs; custom = o.custom && typeof o.custom === 'object' ? o.custom : {};
+    flushNow(); pickStart(); render(); setStatus('Backup importado');
+  };
+  r.readAsText(f);
+  $('fimp').value = '';
+});
+
+$('warn').hidden = storageOk;
+pickStart();
+render();
+setStatus(storageOk ? 'Pronto' : 'Sem armazenamento');
+try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) { /* opcional */ }
+</script>
+</body>
+</html>
