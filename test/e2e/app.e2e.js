@@ -28,6 +28,7 @@ const FAKE_CAP = `
   window.__shared = [];
   window.Capacitor = {
     isNativePlatform: () => true,
+    isPluginAvailable: (n) => n in window.Capacitor.Plugins,
     Plugins: {
       Filesystem: {
         writeFile: async (o) => { fsStore[o.directory + '/' + o.path] = o.data; keep(); return { uri: 'file:///' + o.directory + '/' + o.path }; },
@@ -151,10 +152,10 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.goto(url);
       await p.click('#bcloud');
       await p.fill('#cloud input[type=password]', 'errado');
-      await p.click('#cloud >> text=Conectar');
+      await p.click('#cloud >> text=Conectar Gist');
       await p.waitForSelector('#cloud >> text=Token inválido ou expirado');
       await p.fill('#cloud input[type=password]', 'tok');
-      await p.click('#cloud >> text=Conectar');
+      await p.click('#cloud >> text=Conectar Gist');
       await p.waitForSelector('#cloud >> text=Enviar agora');
       await fill(p, '80', '5');
       const sent = () => { try { return JSON.parse(gists.g1['caderno-de-cargas.json'].content).logs['1-upper'].ex.o0.sets[0].kg; } catch (e) { return null; } };
@@ -168,8 +169,8 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p2.goto(url);
       await p2.click('#bcloud');
       await p2.fill('#cloud input[type=password]', 'tok');
-      await p2.click('#cloud >> text=Conectar');
-      await p2.waitForSelector('#cloud >> text=Achei um backup na nuvem', { timeout: 5000 });
+      await p2.click('#cloud >> text=Conectar Gist');
+      await p2.waitForSelector('#cloud >> text=Achei um backup no GitHub Gist', { timeout: 5000 });
       await p2.click('#cloud >> text=Baixar da nuvem');
       await p2.click('#cloud >> text=Toque de novo');
       await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup da nuvem importado');
@@ -181,7 +182,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
     await t.test('nuvem: sem internet não quebra nada', async () => {
       const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      await p.evaluate(() => localStorage.setItem('cg:sync', JSON.stringify({ token: 'tok', gistId: 'g1', auto: true })));
+      await p.evaluate(() => localStorage.setItem('cg:sync', JSON.stringify({ provider: 'gist', token: 'tok', remoteId: 'g1', auto: true })));
       await ctx.route('https://api.github.com/**', (r) => r.abort('internetdisconnected'));
       await p.reload();
       await fill(p, '20', '12');
@@ -192,6 +193,51 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.click('.tab >> nth=0');
       assert.equal(await p.inputValue('.set >> nth=0 >> input >> nth=0'), '20');
       await ctx.close();
+    });
+
+    await t.test('Google Drive: navegador mostra que é só no app; no app conecta, envia e baixa', async () => {
+      const ctx0 = await browser.newContext(); const p0 = await ctx0.newPage(); watch(p0);
+      await p0.goto(url); await p0.click('#bcloud');
+      await p0.waitForSelector('#cloud >> text=Google Drive: disponível no app Android.');
+      assert.equal(await p0.locator('#cloud >> text=Conectar Google Drive').count(), 0);
+      await ctx0.close();
+
+      const files = {};
+      const route = async (r) => {
+        const req = r.request(), u = new URL(req.url()), method = req.method();
+        const body = (s, b) => r.fulfill({ status: s, contentType: 'application/json', body: typeof b === 'string' ? b : JSON.stringify(b), headers: { 'Access-Control-Allow-Origin': '*' } });
+        if (req.headers().authorization !== 'Bearer gtok') return body(401, {});
+        const id = u.pathname.split('/files')[1].replace('/', '');
+        if (method === 'GET' && !id) return body(200, { files: Object.keys(files).map((i) => ({ id: i })) });
+        if (method === 'POST') { const b = req.headers()['content-type'].split('boundary=')[1]; files.d1 = req.postData().split('--' + b)[2].split('\r\n\r\n')[1].replace(/\r\n$/, ''); return body(200, { id: 'd1' }); }
+        if (method === 'PATCH') { files[id] = req.postData(); return body(200, {}); }
+        return body(200, files[id]);
+      };
+      const DRIVE = `window.Capacitor.Plugins.DriveAuth = { getToken: async (o) => { window.__logins = (window.__logins || 0) + (o.interactive ? 1 : 0); return { token: 'gtok' }; }, clearToken: async () => ({}) };`;
+      const ctx = await browser.newContext(); await ctx.addInitScript(FAKE_CAP); await ctx.addInitScript(DRIVE); await ctx.route('https://www.googleapis.com/**', route);
+      const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await p.click('#bcloud');
+      await p.click('#cloud >> text=Conectar Google Drive');
+      await p.waitForSelector('#cloud >> text=Google Drive ·');
+      assert.equal(await p.evaluate(() => window.__logins), 1);
+      await fill(p, '33', '7');
+      const sent = () => { try { return JSON.parse(files.d1).logs['1-upper'].ex.o0.sets[0].kg; } catch (e) { return null; } };
+      for (let i = 0; i < 100 && sent() !== '33'; i++) await p.waitForTimeout(100);
+      assert.equal(sent(), '33');
+
+      const ctx2 = await browser.newContext(); await ctx2.addInitScript(FAKE_CAP); await ctx2.addInitScript(DRIVE); await ctx2.route('https://www.googleapis.com/**', route);
+      const p2 = await ctx2.newPage(); watch(p2);
+      await p2.goto(url);
+      await p2.click('#bcloud');
+      await p2.click('#cloud >> text=Conectar Google Drive');
+      await p2.waitForSelector('#cloud >> text=Achei um backup no Google Drive', { timeout: 5000 });
+      await p2.click('#cloud >> text=Baixar da nuvem');
+      await p2.click('#cloud >> text=Toque de novo');
+      await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup da nuvem importado');
+      await p2.click('.tab >> nth=0');
+      assert.equal(await p2.inputValue('.set >> nth=0 >> input >> nth=0'), '33');
+      await ctx.close(); await ctx2.close();
     });
 
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
