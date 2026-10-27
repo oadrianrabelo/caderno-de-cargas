@@ -1,0 +1,89 @@
+name: Android
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Testes
+        run: npm test
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Cache das dependências e do wrapper do Gradle.
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Copia o app web para o projeto Android
+        run: npx cap sync android
+
+      # A keystore só existe nos secrets do repositório. Sem ela, o CI gera um APK debug.
+      - name: Prepara assinatura e versão
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "BUILD_TYPE=release" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Sem ANDROID_KEYSTORE_BASE64: gerando APK debug. Cada build debug do CI tem uma assinatura diferente, então atualizar exige desinstalar."
+            echo "BUILD_TYPE=debug" >> "$GITHUB_ENV"
+          fi
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "VERSION_NAME=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION_NAME=0.0.0-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          fi
+          echo "VERSION_CODE=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Compila o APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ "$BUILD_TYPE" = "release" ]; then ./gradlew --no-daemon assembleRelease; else ./gradlew --no-daemon assembleDebug; fi
+          apk=$(ls app/build/outputs/apk/$BUILD_TYPE/*.apk | head -1)
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          cp "$apk" "$GITHUB_WORKSPACE/dist/caderno-de-cargas-${VERSION_NAME}-${BUILD_TYPE}.apk"
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: caderno-de-cargas-apk
+          path: dist/*.apk
+          if-no-files-found: error
+
+      - name: Anexa o APK à Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "Caderno de Cargas $GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" dist/*.apk --clobber
