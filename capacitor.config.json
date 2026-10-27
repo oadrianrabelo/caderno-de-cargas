@@ -1,0 +1,10 @@
+{
+  "appId": "com.oadrianrabelo.cadernodecargas",
+  "appName": "Caderno de Cargas",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}
