@@ -74,6 +74,14 @@ jobs:
           cp "$apk" "$GITHUB_WORKSPACE/dist/caderno-de-cargas-${VERSION_NAME}-${BUILD_TYPE}.apk"
           rm -f "$RUNNER_TEMP/release.jks"
 
+      # O SHA-1 do certificado é público e é o que o Google Cloud pede para liberar o login do Drive.
+      - name: Mostra o certificado do APK
+        run: |
+          bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          certs=$("$bt/apksigner" verify --print-certs dist/*.apk | grep -E 'SHA-1|SHA-256')
+          echo "$certs"
+          { echo "### Certificado do APK ($BUILD_TYPE)"; echo '```'; echo "$certs"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v4
         with:
           name: caderno-de-cargas-apk
