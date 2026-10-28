@@ -5,7 +5,13 @@ on:
     branches: ['**']
     tags: ['v*']
   pull_request:
+  # Também dá para publicar uma versão pelo celular: Actions → Android → Run workflow → informe a versão.
   workflow_dispatch:
+    inputs:
+      versao:
+        description: 'Versão a publicar como Release (ex.: v0.1.0). Vazio = só compila.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -45,6 +51,7 @@ jobs:
       - name: Prepara assinatura e versão
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          INPUT_VERSAO: ${{ github.event.inputs.versao }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
@@ -54,8 +61,11 @@ jobs:
             echo "::warning::Sem ANDROID_KEYSTORE_BASE64: gerando APK debug. Cada build debug do CI tem uma assinatura diferente, então atualizar exige desinstalar."
             echo "BUILD_TYPE=debug" >> "$GITHUB_ENV"
           fi
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            echo "VERSION_NAME=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then TAG="$GITHUB_REF_NAME"; else TAG="${INPUT_VERSAO}"; fi
+          if [ -n "$TAG" ]; then
+            case "$TAG" in v[0-9]*) ;; *) echo "::error::A versão precisa começar com v e um número, ex.: v0.1.0"; exit 1;; esac
+            echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+            echo "VERSION_NAME=${TAG#v}" >> "$GITHUB_ENV"
           else
             echo "VERSION_NAME=0.0.0-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
           fi
@@ -89,9 +99,10 @@ jobs:
           if-no-files-found: error
 
       - name: Anexa o APK à Release
-        if: github.ref_type == 'tag'
+        if: env.RELEASE_TAG != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "Caderno de Cargas $GITHUB_REF_NAME" --generate-notes
-          gh release upload "$GITHUB_REF_NAME" dist/*.apk --clobber
+          # Sem a tag, o gh cria a tag no commit compilado.
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "Caderno de Cargas $RELEASE_TAG" --generate-notes
+          gh release upload "$RELEASE_TAG" dist/*.apk --clobber
