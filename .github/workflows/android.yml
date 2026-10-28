@@ -44,8 +44,13 @@ jobs:
       # Cache das dependências e do wrapper do Gradle.
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Copia o app web para o projeto Android
-        run: npx cap sync android
+      # Sem keystore nos secrets, o APK sai assinado com a chave debug. Guardá-la em cache mantém a
+      # mesma assinatura entre builds (best effort: o GitHub apaga caches sem uso por 7 dias).
+      - name: Chave debug estável
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
 
       # A keystore só existe nos secrets do repositório. Sem ela, o CI gera um APK debug.
       - name: Prepara assinatura e versão
@@ -71,6 +76,13 @@ jobs:
           fi
           echo "VERSION_CODE=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
 
+      # version.json vai dentro do APK; web-<build>-<nativo>.json é o pacote da atualização automática.
+      - name: Gera o pacote web da atualização automática
+        run: node scripts/web-bundle.js "v${VERSION_NAME}" "${GITHUB_RUN_NUMBER}" dist
+
+      - name: Copia o app web para o projeto Android
+        run: npx cap sync android
+
       - name: Compila o APK
         working-directory: android
         env:
@@ -95,7 +107,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: caderno-de-cargas-apk
-          path: dist/*.apk
+          path: |
+            dist/*.apk
+            dist/web-*.json
           if-no-files-found: error
 
       - name: Anexa o APK à Release
@@ -105,4 +119,4 @@ jobs:
         run: |
           # Sem a tag, o gh cria a tag no commit compilado.
           gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "Caderno de Cargas $RELEASE_TAG" --generate-notes
-          gh release upload "$RELEASE_TAG" dist/*.apk --clobber
+          gh release upload "$RELEASE_TAG" dist/*.apk dist/web-*.json --clobber
