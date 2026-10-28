@@ -240,6 +240,127 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close(); await ctx2.close();
     });
 
+    await t.test('painéis começam fechados', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      for (const id of ['#cloud', '#progress', '#programs', '#skipnote']) assert.equal(await p.isVisible(id), false, id);
+      await ctx.close();
+    });
+
+    await t.test('pular treino: marca, avança, aparece no progresso e pode ser desfeito', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await p.click('#bskip');
+      assert.equal(await p.textContent('#title'), 'Lower');
+      assert.equal(await p.textContent('#status'), 'Treino pulado. Próximo: Lower');
+      assert.equal(await p.locator('.tab >> nth=0 >> .dot.skip').count(), 1);
+      await p.reload();
+      assert.equal(await p.textContent('#title'), 'Lower');
+      await p.click('#bprog');
+      assert.equal(await p.textContent('#progress .kpi >> nth=1 >> b'), '1');
+      await p.click('#progress .grid button >> nth=0');
+      assert.equal(await p.textContent('#title'), 'Upper');
+      assert.equal(await p.isVisible('#progress'), false);
+      assert.match(await p.textContent('#skipnote'), /Você pulou este treino em/);
+      assert.equal(await p.textContent('#bskip'), 'Desfazer pulo');
+      await p.click('#bskip');
+      assert.equal(await p.isVisible('#skipnote'), false);
+      assert.equal(await p.locator('.tab >> nth=0 >> .dot').count(), 0);
+      await ctx.close();
+    });
+
+    await t.test('programa próprio: criar, montar o dia, treinar, trocar, editar e excluir', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await p.click('#bprogs');
+      await p.click('#programs >> text=+ Criar meu programa');
+      await p.fill('#programs input >> nth=0', 'Meu AB');
+      await p.fill('#programs input >> nth=1', '4');
+      await p.click('#programs [aria-label="Remover dia 3"]');
+      await p.fill('#programs [aria-label="Nome do dia 1"]', 'Peito e tríceps');
+      await p.click('#programs >> text=Criar e usar');
+      assert.equal(await p.isVisible('#programs'), false);
+      assert.equal(await p.textContent('#title'), 'Peito e tríceps');
+      assert.equal(await p.textContent('#bedit'), 'Concluir edição');
+      assert.equal(await p.locator('.tab').count(), 2);
+      await p.click('text=+ Adicionar exercício');
+      await p.fill('.ed .nm', 'Supino reto');
+      await p.click('#bedit');
+      await fill(p, '80', '6');
+      await p.click('#wnext');
+      assert.equal(await p.textContent('.ex h2 >> nth=0'), 'Supino reto');
+      assert.equal(await p.getAttribute('.set >> nth=0 >> input >> nth=0', 'placeholder'), '80');
+      for (let i = 0; i < 5; i++) if (await p.isEnabled('#wnext')) await p.click('#wnext');
+      assert.equal(await p.textContent('#wl'), 'Semana 4');
+      await p.reload();
+      assert.equal(await p.textContent('#title'), 'Treino B');
+      assert.equal(await p.textContent('#sub'), 'Meu AB');
+
+      await p.click('#bprogs');
+      await p.click('#programs .it >> nth=1 >> text=Editar dias');
+      await p.fill('#programs [aria-label="Nome do dia 2"]', 'Costas');
+      await p.click('#programs >> text=Salvar');
+      assert.equal(await p.textContent('.tab >> nth=1'), 'Costas');
+      await p.click('#programs .it >> nth=0 >> text=Usar');
+      assert.equal(await p.locator('.tab').count(), 5);
+      assert.equal(await p.textContent('#title'), 'Upper');
+      await p.click('#bprogs');
+      await p.click('#programs .it >> nth=1 >> text=Excluir');
+      await p.click('#programs .it >> nth=1 >> text=Toque de novo para excluir');
+      assert.equal(await p.locator('#programs .it').count(), 1);
+      await ctx.close();
+    });
+
+    await t.test('programa a partir do Jeff copia os exercícios e vai no backup', async () => {
+      const ctx = await browser.newContext({ acceptDownloads: true }); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await p.click('#bprogs');
+      await p.click('#programs >> text=+ Criar meu programa');
+      await p.click('#programs >> text=Partir do treino do Jeff');
+      await p.click('#programs >> text=Criar e usar');
+      assert.equal(await p.textContent('#sub'), 'Meu Jeff');
+      assert.equal(await p.textContent('.ex h2 >> nth=0'), '45° Incline Barbell Press');
+      await fill(p, '30', '10');
+      const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#bexp')]);
+      const file = path.join(os.tmpdir(), 'cg-e2e-prog-' + process.pid + '.json');
+      await dl.saveAs(file);
+      assert.equal(Object.values(JSON.parse(fs.readFileSync(file, 'utf8')).programs.list)[0].name, 'Meu Jeff');
+      const ctx2 = await browser.newContext(); const p2 = await ctx2.newPage(); watch(p2);
+      await p2.goto(url);
+      await p2.setInputFiles('#fimp', file);
+      await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup importado');
+      assert.equal(await p2.textContent('#sub'), 'Meu Jeff');
+      assert.equal(await p2.textContent('#title'), 'Lower');
+      fs.unlinkSync(file);
+      await ctx.close(); await ctx2.close();
+    });
+
+    await t.test('imagens: baixa PNG no navegador e compartilha no Android', async () => {
+      const ctx = await browser.newContext({ acceptDownloads: true }); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await fill(p, '50', '8');
+      await p.click('#bprog');
+      const [d1] = await Promise.all([p.waitForEvent('download'), p.click('#progress >> text=Imagem do treino')]);
+      assert.match(d1.suggestedFilename(), /^treino-\d{4}-\d{2}-\d{2}\.png$/);
+      const png = fs.readFileSync(await d1.path());
+      assert.equal(png.slice(1, 4).toString(), 'PNG');
+      assert.equal(png.readUInt32BE(16), 1080);
+      const [d2] = await Promise.all([p.waitForEvent('download'), p.click('#progress >> text=Imagem do progresso')]);
+      assert.match(d2.suggestedFilename(), /^progresso-.*\.png$/);
+      await ctx.close();
+
+      const ctx2 = await browser.newContext(); await ctx2.addInitScript(FAKE_CAP); const p2 = await ctx2.newPage(); watch(p2);
+      await p2.goto(url);
+      await p2.click('#bprog');
+      await p2.click('#progress >> text=Imagem do progresso');
+      await p2.waitForFunction(() => document.getElementById('status').textContent === 'Imagem compartilhada');
+      const shared = await p2.evaluate(() => window.__shared);
+      assert.match(shared[0].files[0], /^file:\/\/\/CACHE\/progresso-.*\.png$/);
+      const b64 = await p2.evaluate((u) => window.__fs[u.replace('file:///', '')], shared[0].files[0]);
+      assert.equal(Buffer.from(b64, 'base64').slice(1, 4).toString(), 'PNG');
+      await ctx2.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {
