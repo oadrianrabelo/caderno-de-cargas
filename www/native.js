@@ -18,6 +18,17 @@
         throw e;
       }
       return 'Backup exportado';
+    },
+    // Imagem (PNG em base64, sem o prefixo data:) para o menu de compartilhar: WhatsApp, Instagram, galeria...
+    async shareImage(name, base64) {
+      const { uri } = await FS.writeFile({ path: name, data: base64, directory: 'CACHE' });
+      try {
+        await Share.share({ title: 'Caderno de Cargas', files: [uri], dialogTitle: 'Compartilhar imagem' });
+      } catch (e) {
+        if (/cancel/i.test(String(e && e.message))) return 'Compartilhamento fechado';
+        throw e;
+      }
+      return 'Imagem compartilhada';
     }
   };
 
