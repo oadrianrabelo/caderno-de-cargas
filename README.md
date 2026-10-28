@@ -4,7 +4,23 @@ Caderno de cargas de academia para Android. Funciona 100% offline e já vem com 
 *Bodybuilding Transformation System* (12 semanas, Upper / Lower / Pull / Push / Legs).
 
 É o mesmo HTML de sempre (`www/index.html`) empacotado com [Capacitor](https://capacitorjs.com/)
-num WebView local. Não usa servidor nem framework.
+num WebView local. É HTML, CSS e JavaScript puros: sem framework, sem bundler, sem servidor. O APK tem cerca de 5 MB.
+
+## O que ele faz
+
+- **Treino do dia**: o app abre no próximo treino. Os números cinza são a última carga; tocar no ✓ com os
+  campos vazios repete o que você fez da última vez.
+- **Pular treino**: registra o dia como pulado (com a data) e vai para o próximo. Dá para desfazer.
+- **Progresso**: treinos feitos e pulados, sequência sem pular, quantos dias desde o último treino,
+  calendário das últimas 5 semanas, grade do programa (toque num quadrado para abrir o treino) e evolução
+  da carga de cada exercício.
+- **Imagens**: em *Progresso → Compartilhar*, gera um PNG do treino ou do progresso e abre o menu de
+  compartilhar (WhatsApp, Instagram, galeria).
+- **Programas**: além do programa do Jeff, crie os seus (dias com nome, número de semanas), vazios ou a
+  partir do treino do Jeff. Monte cada dia em *Editar treino*. A última carga de um exercício aparece em
+  qualquer programa, pelo nome.
+- **Backup** em arquivo e **nuvem** opcional (abaixo).
+- **Atualização automática** (abaixo).
 
 ## Instalar no celular
 
@@ -13,10 +29,19 @@ num WebView local. Não usa servidor nem framework.
    para o navegador ou para o app de arquivos (*Configurações → Apps → Acesso especial → Instalar apps desconhecidos*).
 3. Abra **Caderno de Cargas**.
 
-> **Atualizações:** o APK assinado com a keystore do repositório (`…-release.apk`) atualiza por cima
-> do anterior, sem perder dados. O APK `…-debug.apk` é gerado quando não há keystore configurada,
-> e cada build debug do CI tem uma assinatura diferente: para instalar uma nova versão, é preciso
-> desinstalar a anterior, e **desinstalar apaga os dados**. Faça backup antes.
+## Atualização automática
+
+Com internet, o app confere a última Release do GitHub (no máximo a cada 6 horas):
+
+- **Mudou só o app** (telas, funções; quase sempre): ele baixa a versão nova sozinho e ela entra na próxima
+  vez que você abrir o app, ou na hora, em *Atualizar agora*. Não precisa baixar APK. Se a versão nova
+  não abrir direito em 20 segundos, ele volta para a anterior.
+- **Mudou a parte Android** (plugins, permissões; raro): aparece um aviso com o botão *Baixar APK*.
+
+> **Instalar um APK por cima:** o APK assinado com a keystore do repositório (`…-release.apk`) atualiza
+> por cima do anterior, sem perder dados. Sem keystore, o CI gera um `…-debug.apk` e tenta manter a mesma
+> chave debug entre builds; se a assinatura mudar, o Android pede para desinstalar, e **desinstalar
+> apaga os dados**. Exporte o backup antes de instalar um APK.
 
 ## Backup dos dados
 
@@ -58,12 +83,12 @@ Depois de mudar qualquer arquivo em `www/`, rode `npx cap sync android` antes de
 ## Publicar uma versão (GitHub Actions)
 
 Todo push roda os testes e compila um APK (disponível como *artifact* da execução).
-Uma tag `v*` também cria a Release com o APK anexado:
+Para publicar uma Release (é dela que vem a atualização automática), use um dos jeitos:
 
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
+- **Pelo celular**: no GitHub, *Actions → Android → Run workflow*, preencha a versão (ex.: `v0.3.0`) e confirme.
+- **Pelo terminal**: `git tag v0.3.0 && git push origin v0.3.0`.
+
+A Release recebe o APK e o pacote `web-<build>-<nativo>.json`, que é o que os apps instalados baixam.
 
 ### APK de release assinado (recomendado)
 
@@ -110,10 +135,15 @@ e se a sua conta está entre os usuários de teste. O celular precisa ter o Goog
 | Caminho | O que é |
 | --- | --- |
 | `www/index.html` | o app (fonte da verdade) |
-| `www/logic.js` | lógica pura: próximo treino, última carga, backup, cópia de semanas |
+| `www/logic.js` | lógica pura: próximo treino, pulos, última carga, estatísticas, programas, backup |
 | `www/native.js` | só no Android: exportar via compartilhar e espelho dos dados |
 | `www/sync.js` | salvamento opcional na nuvem (Google Drive ou GitHub Gist) |
+| `www/progress.js` | painel de progresso e imagens para compartilhar |
+| `www/programs.js` | programas próprios |
+| `www/update.js` | atualização automática |
 | `android/app/src/main/java/.../DriveAuthPlugin.java` | login Google para o Drive (plugin local do Capacitor) |
+| `android/app/src/main/java/.../WebUpdatePlugin.java` | troca o app web baixado, com volta automática se falhar |
+| `scripts/web-bundle.js` | gera o pacote da atualização automática (usado pelo CI) |
 | `test/` | testes com `node:test` (`npm test`); `npm run test:e2e` roda o teste no Chromium (precisa do Playwright) |
 | `assets/` | ícone e splash (`halter.svg` é a fonte) |
 | `android/` | projeto Android gerado pelo Capacitor |
