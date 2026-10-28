@@ -105,12 +105,12 @@ test('backup: exportar e importar devolve os mesmos dados', () => {
   const custom = { '1-upper': [{ id: 'o0', n: 'A', s: 1, r: '5', t: '1 min', a: [] }] };
   const txt = CG.serializeBackup(logs, custom);
   assert.equal(JSON.parse(txt).v, 1);
-  assert.deepEqual(CG.parseBackup(txt), { logs, custom });
+  assert.deepEqual(CG.parseBackup(txt), { logs, custom, programs: null });
 });
 
 test('backup: importar substitui os dados e tolera custom ausente', () => {
-  assert.deepEqual(CG.parseBackup('{"v":1,"logs":{"a":1}}'), { logs: { a: 1 }, custom: {} });
-  assert.deepEqual(CG.parseBackup('{"logs":{},"custom":"x"}'), { logs: {}, custom: {} });
+  assert.deepEqual(CG.parseBackup('{"v":1,"logs":{"a":1}}'), { logs: { a: 1 }, custom: {}, programs: null });
+  assert.deepEqual(CG.parseBackup('{"logs":{},"custom":"x"}'), { logs: {}, custom: {}, programs: null });
 });
 
 test('backup: rejeita arquivos inválidos', () => {
@@ -123,4 +123,94 @@ test('backup: rejeita arquivos inválidos', () => {
 
 test('backupFileName: usa a data local', () => {
   assert.equal(CG.backupFileName(new Date(2026, 0, 5)), 'caderno-de-cargas-2026-01-05.json');
+});
+
+const skipped = (week, day, t) => ({ week, day, date: '2026-01-01', t, ex: {}, skip: true });
+
+test('pular: um treino pulado conta para escolher o próximo dia', () => {
+  const logs = {
+    '1-upper': log(1, 'upper', 100, { o0: { used: 'A', sets: { 0: set('50', '8') } } }),
+    '1-lower': skipped(1, 'lower', 200),
+  };
+  assert.deepEqual(CG.pickStart(logs), { week: 1, day: 'pull' });
+  assert.equal(CG.dayStatus(logs['1-lower']), 'skip');
+  assert.equal(CG.dayStatus(logs['1-upper']), 'done');
+  // Se depois treinou o dia que tinha pulado, conta como feito.
+  logs['1-lower'].ex = { o0: { used: 'B', sets: { 0: set('80', '6') } } };
+  assert.equal(CG.dayStatus(logs['1-lower']), 'done');
+});
+
+test('programa próprio: próximo dia segue a ordem e o número de semanas do programa', () => {
+  const order = ['dA', 'dB', 'dC'];
+  const logs = {
+    '1-upper': log(1, 'upper', 999, { o0: { used: 'A', sets: { 0: set('1', '1') } } }), // de outro programa
+    '2-dC': log(2, 'dC', 50, { e1: { used: 'Agacho', sets: { 0: set('100', '5') } } }),
+  };
+  assert.deepEqual(CG.pickStart(logs, order, 4), { week: 3, day: 'dA' });
+  assert.deepEqual(CG.nextDay(4, 'dC', order, 4), { week: 4, day: 'dA' });
+  assert.deepEqual(CG.nextDay(1, 'dA', order, 4), { week: 1, day: 'dB' });
+});
+
+test('copyToNextWeeks: respeita o número de semanas do programa', () => {
+  const custom = {};
+  CG.copyToNextWeeks(custom, [{ id: 'a' }], 2, 'dA', 4);
+  assert.deepEqual(Object.keys(custom), ['3-dA', '4-dA']);
+});
+
+test('summarize: feitos, pulados, total, último treino e sequência sem pular', () => {
+  const logs = {
+    '1-upper': log(1, 'upper', 100, { o0: { used: 'A', sets: { 0: set('50', '8') } } }),
+    '1-lower': skipped(1, 'lower', 200),
+    '1-pull': log(1, 'pull', 300, { o0: { used: 'C', sets: { 0: set('40', '10') } } }),
+    '1-push': log(1, 'push', 400, { o0: { used: 'D', sets: { 0: set('30', '10') } } }),
+    '1-legs': log(1, 'legs', 0, {}), // só aberto, sem nada feito
+  };
+  assert.deepEqual(CG.summarize(logs), { done: 3, skipped: 1, total: 60, streak: 2, last: { t: 400, week: 1, day: 'push' } });
+  assert.deepEqual(CG.summarize({}), { done: 0, skipped: 0, total: 60, streak: 0, last: null });
+});
+
+test('calendar: marca os dias treinados e pulados pela data local', () => {
+  const d1 = new Date(2026, 9, 26, 18, 0).getTime(), d2 = new Date(2026, 9, 27, 7, 0).getTime();
+  const logs = {
+    a: log(1, 'upper', d1, { o0: { used: 'A', sets: { 0: set('50', '8') } } }),
+    b: skipped(1, 'lower', d1 + 1000),
+    c: skipped(1, 'pull', d2),
+  };
+  assert.deepEqual(CG.calendar(logs), { '2026-10-26': 'done', '2026-10-27': 'skip' });
+});
+
+test('exerciseProgress: melhor série de cada treino, em ordem, aceitando vírgula', () => {
+  const logs = {
+    a: log(1, 'upper', 100, { o0: { used: 'Supino', sets: { 0: set('60', '8'), 1: set('62,5', '6') } } }),
+    b: log(2, 'upper', 300, { o0: { used: 'Supino', sets: { 0: set('62.5', '8') } }, o1: { used: 'Remada', sets: { 0: set('', '', false) } } }),
+    c: log(1, 'pull', 200, { o2: { used: 'Barra', sets: { 0: set('', '10') } } }),
+  };
+  assert.deepEqual(CG.exerciseProgress(logs), [
+    { name: 'Supino', points: [{ t: 100, kg: 62.5, reps: 6 }, { t: 300, kg: 62.5, reps: 8 }] },
+    { name: 'Barra', points: [{ t: 200, kg: 0, reps: 10 }] },
+  ]);
+});
+
+test('makeProgram: dias com ids únicos e exercícios copiados com ids novos', () => {
+  const tpl = [CG.baseList(P, 1, 'upper'), []];
+  const p = CG.makeProgram('Meu ABC', 8.4, ['Peito', 'Costas'], tpl);
+  assert.equal(p.name, 'Meu ABC');
+  assert.equal(p.weeks, 8);
+  assert.deepEqual(p.days.map((d) => d.name), ['Peito', 'Costas']);
+  assert.notEqual(p.days[0].id, p.days[1].id);
+  assert.equal(p.days[0].ex.length, tpl[0].length);
+  assert.equal(p.days[0].ex[0].n, tpl[0][0].n);
+  assert.notEqual(p.days[0].ex[0].id, tpl[0][0].id);
+  assert.equal(new Set(p.days[0].ex.map((e) => e.id)).size, tpl[0].length);
+  assert.deepEqual(p.days[1].ex, []);
+  assert.equal(CG.makeProgram('x', 0, ['a']).weeks, 1);
+  assert.equal(CG.makeProgram('x', 99, ['a']).weeks, 52);
+});
+
+test('backup: leva e traz os programas próprios', () => {
+  const programs = { active: 'p1', list: { p1: { id: 'p1', name: 'Meu', weeks: 4, days: [] } } };
+  const txt = CG.serializeBackup({}, {}, programs);
+  assert.deepEqual(CG.parseBackup(txt).programs, programs);
+  assert.equal(JSON.parse(CG.serializeBackup({}, {}, { list: {} })).programs, undefined);
+  assert.equal(CG.parseBackup('{"logs":{},"programs":"x"}').programs, null);
 });
