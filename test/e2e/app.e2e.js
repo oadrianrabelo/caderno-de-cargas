@@ -361,6 +361,63 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx2.close();
     });
 
+    await t.test('atualização automática: baixa o app web novo, aplica e pede APK quando o Android muda', async () => {
+      const files = fs.readdirSync(WWW).filter((f) => !f.startsWith('.') && f !== 'version.json');
+      const bundle = (build, native) => JSON.stringify({ version: 'v0.' + build + '.0', build, native, files: Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(WWW, f), 'utf8')])) });
+      let release = null;
+      const UPD = `
+        window.__applied = []; window.__http = [];
+        Object.assign(window.Capacitor.Plugins, {
+          WebUpdate: { confirm: async () => ({ applied: false }), info: async () => ({ bad: 0 }), apply: async (o) => { window.__applied.push(o); } },
+          CapacitorHttp: { request: async (o) => { window.__http.push(o.url); return { data: window.__bundle, status: 200 }; } }
+        });
+        Object.assign(window.Capacitor.Plugins.Filesystem, {
+          getUri: async (o) => ({ uri: 'file:///data/user/0/app/files/' + o.path }),
+          readdir: async () => ({ files: [] }), rmdir: async () => ({})
+        });`;
+      const setup = async (ctx, bundleJson) => {
+        await ctx.addInitScript(FAKE_CAP); await ctx.addInitScript(UPD);
+        await ctx.addInitScript('window.__bundle = ' + JSON.stringify(bundleJson) + ';');
+        await ctx.route('**/version.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: 'v0.5.0', build: 5, native: 'aaaaaaaaaaaa' }) }));
+        await ctx.route('https://api.github.com/repos/**/releases/latest', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(release), headers: { 'Access-Control-Allow-Origin': '*' } }));
+      };
+
+      // Mesma parte Android: baixa e grava o pacote, avisa e aplica no toque.
+      release = { tag_name: 'v0.6.0', assets: [{ name: 'web-6-aaaaaaaaaaaa.json', browser_download_url: 'https://dl/web.json' }, { name: 'x.apk', browser_download_url: 'https://dl/x.apk' }] };
+      const ctx = await browser.newContext(); await setup(ctx, bundle(6, 'aaaaaaaaaaaa'));
+      const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await p.waitForSelector('#updnote >> text=Nova versão v0.6.0 baixada', { timeout: 10000 });
+      assert.deepEqual(await p.evaluate(() => window.__http), ['https://dl/web.json']);
+      assert.ok((await p.evaluate(() => window.__fs['DATA/web/b6/index.html'])).includes('<script src="logic.js">'));
+      await p.click('#updnote >> text=Atualizar agora');
+      assert.deepEqual(await p.evaluate(() => window.__applied), [{ path: '/data/user/0/app/files/web/b6', build: 6 }]);
+      // Reabrindo o app, a versão baixada entra sozinha.
+      await p.reload();
+      await p.waitForFunction(() => window.__applied.length === 1, null, { timeout: 5000 });
+      await ctx.close();
+
+      // Pacote adulterado: não grava nada.
+      const ctxBad = await browser.newContext(); await setup(ctxBad, bundle(6, 'bbbbbbbbbbbb'));
+      const pb = await ctxBad.newPage(); watch(pb);
+      await pb.goto(url);
+      await pb.waitForFunction(() => window.__http.length === 1);
+      await pb.waitForTimeout(300);
+      assert.equal(await pb.evaluate(() => Object.keys(window.__fs).some((k) => k.startsWith('DATA/web/'))), false);
+      assert.equal(await pb.isVisible('#updnote'), false);
+      await ctxBad.close();
+
+      // Parte Android mudou: não baixa o pacote web, oferece o APK.
+      release = { tag_name: 'v0.7.0', assets: [{ name: 'web-7-cccccccccccc.json', browser_download_url: 'https://dl/web7.json' }, { name: 'app-0.7.0.apk', browser_download_url: 'https://dl/app.apk' }] };
+      const ctx2 = await browser.newContext(); await setup(ctx2, '{}');
+      const p2 = await ctx2.newPage(); watch(p2);
+      await p2.goto(url);
+      await p2.waitForSelector('#updnote >> text=Baixar APK', { timeout: 10000 });
+      assert.equal(await p2.getAttribute('#updnote a', 'href'), 'https://dl/app.apk');
+      assert.deepEqual(await p2.evaluate(() => window.__http), []);
+      await ctx2.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {

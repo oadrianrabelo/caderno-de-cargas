@@ -183,6 +183,7 @@ const CGApp = window.CGApp = {
   // render() já cria o treino do dia vazio (t = 0); só conta o que foi preenchido.
   isEmpty: () => !Object.keys(custom).length && !Object.keys(programs.list || {}).length && Object.values(logs).every((l) => !l || !l.t),
   status: (t) => setStatus(t),
+  flush: () => flushNow(),
   // Usados por progress.js e programs.js.
   view: () => ({ logs, week, day, ORDER, NAMES, WEEKS, program: prog ? prog.name : BTS.name, list: getList(), doc: logs[ckey()] || null }),
   bts: () => ({ P, order: BTS.order, names: BTS.names, weeks: BTS.weeks, name: BTS.name }),
@@ -469,5 +470,6 @@ try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {
 <script src="sync.js"></script>
 <script src="progress.js"></script>
 <script src="programs.js"></script>
+<script src="update.js"></script>
 </body>
 </html>

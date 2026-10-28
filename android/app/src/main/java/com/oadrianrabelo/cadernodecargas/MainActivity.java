@@ -7,8 +7,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // Plugin local (não vem do npm), usado pelo salvamento no Google Drive.
+        // Plugins locais (não vêm do npm): login do Google Drive e atualização automática.
         registerPlugin(DriveAuthPlugin.class);
+        registerPlugin(WebUpdatePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
