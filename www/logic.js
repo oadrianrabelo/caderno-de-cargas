@@ -10,6 +10,20 @@
 
   function baseList(P, w, d) { return P[w][d].map((e, i) => ({ id: 'o' + i, n: e.n, s: e.s, r: e.r, t: e.t, a: e.a })); }
 
+  // Aquecimento, RPE e técnica da última série de um exercício. O que foi editado no exercício vale;
+  // o que faltar vem dos detalhes do programa embutido (extra[semana][dia][índice], só para ids "oN").
+  const DETAILS = ['aq', 'rpe', 'rpeUlt', 'tec'];
+  function exDetails(ex, extra, w, d) {
+    const m = /^o(\d+)$/.exec(ex.id || '');
+    const base = (m && extra && extra[w] && extra[w][d] && extra[w][d][Number(m[1])]) || {};
+    const out = {};
+    DETAILS.forEach((k) => {
+      const v = ex[k] !== undefined ? ex[k] : base[k];
+      if (v !== undefined && v !== null && v !== '' && v !== 0) out[k] = v;
+    });
+    return out;
+  }
+
   // Devolve a lista editável do dia, criando-a a partir do programa base se ainda não existir.
   function editList(custom, P, w, d) {
     const k = w + '-' + d;
@@ -142,7 +156,7 @@
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, newId, makeProgram, serializeBackup, parseBackup, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, newId, makeProgram, serializeBackup, parseBackup, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

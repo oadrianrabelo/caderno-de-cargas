@@ -214,3 +214,14 @@ test('backup: leva e traz os programas próprios', () => {
   assert.equal(JSON.parse(CG.serializeBackup({}, {}, { list: {} })).programs, undefined);
   assert.equal(CG.parseBackup('{"logs":{},"programs":"x"}').programs, null);
 });
+
+test('exDetails: usa o que foi editado e completa com os detalhes do programa', () => {
+  const extra = { 1: { upper: [{ aq: 2, rpe: '7-8', rpeUlt: '9-10', tec: 'falha' }, { aq: 1 }] } };
+  assert.deepEqual(CG.exDetails({ id: 'o0' }, extra, 1, 'upper'), { aq: 2, rpe: '7-8', rpeUlt: '9-10', tec: 'falha' });
+  assert.deepEqual(CG.exDetails({ id: 'o0', tec: 'llp', aq: 0 }, extra, 1, 'upper'), { rpe: '7-8', rpeUlt: '9-10', tec: 'llp' });
+  assert.deepEqual(CG.exDetails({ id: 'o1', rpeUlt: '10' }, extra, 1, 'upper'), { aq: 1, rpeUlt: '10' });
+  // Exercício criado pelo usuário não herda nada do programa.
+  assert.deepEqual(CG.exDetails({ id: 'n123' }, extra, 1, 'upper'), {});
+  assert.deepEqual(CG.exDetails({ id: 'o0' }, {}, 2, 'pull'), {});
+  assert.deepEqual(CG.exDetails({ id: 'o0', rpe: '' }, undefined, 1, 'upper'), {});
+});
