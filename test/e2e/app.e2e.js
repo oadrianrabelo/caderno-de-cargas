@@ -418,6 +418,47 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx2.close();
     });
 
+    await t.test('RPE, aquecimento e técnica: edita, mostra, explica e não conta aquecimento como série', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      assert.equal(await p.textContent('#focus'), 'Força ⓘ');
+      await p.click('#focus');
+      assert.equal(await p.textContent('.tipbox h2'), 'Dia de força');
+      await p.click('.tipbox >> text=Entendi');
+      assert.equal(await p.locator('.ex >> nth=0 >> .det').count(), 0);
+      await p.click('#bedit');
+      const ed = () => p.locator('.ed').first();
+      await ed().locator('[aria-label="Mais uma série de aquecimento"]').click();
+      await ed().locator('input[placeholder="ex.: 7-8"]').fill('8');
+      await ed().locator('input[placeholder="ex.: 9-10"]').fill('10');
+      await ed().locator('select').selectOption('myo');
+      await p.click('text=Repetir nas próximas semanas');
+      await p.click('#bedit');
+      assert.deepEqual(await p.locator('.ex >> nth=0 >> .det .tag').allTextContents(), ['1 série de aquecimento ⓘ', 'RPE 8 · última 10 ⓘ', 'Última série: Myo-reps ⓘ']);
+      assert.equal(await p.textContent('.ex >> nth=0 >> .set:not(.warm) >> nth=1 >> .sl .tq'), 'Myo-reps');
+      await p.locator('.ex >> nth=0 >> .set.warm input').first().fill('40');
+      await p.waitForFunction(() => document.getElementById('status').textContent === 'Salvo');
+      assert.equal(await p.textContent('#prog'), '0 de 14 séries');
+      await p.click('.ex >> nth=0 >> .tag.tec');
+      assert.equal(await p.textContent('.tipbox h2'), 'Myo-reps');
+      await p.click('.tipbox >> text=Entendi');
+      await p.click('#bgloss');
+      assert.ok((await p.locator('.tipbox h3').allTextContents()).includes('LLPs (parciais alongadas)'));
+      await p.click('.tipbox >> text=Entendi');
+      await p.reload();
+      await p.click('#wnext');
+      assert.equal(await p.textContent('.ex >> nth=0 >> .tag.tec'), 'Última série: Myo-reps ⓘ');
+      await p.click('#wprev');
+      assert.equal(await p.inputValue('.ex >> nth=0 >> .set.warm input >> nth=0'), '40');
+      // Aquecimento não vira "última carga" do exercício.
+      assert.equal(await p.evaluate(() => CG.lastFor(JSON.parse(localStorage.getItem('cg:logs')), '45° Incline Barbell Press', 'x')), null);
+      // Os detalhes vão no backup (dentro da lista editada).
+      const snap = JSON.parse(await p.evaluate(() => CGApp.snapshot()));
+      assert.equal(snap.custom['1-upper'][0].tec, 'myo');
+      assert.equal(snap.logs['1-upper'].ex.o0.warm[0].kg, '40');
+      await ctx.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {

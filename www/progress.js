@@ -220,7 +220,9 @@
         ctx.font = '500 34px ' + FONT;
         let x = PAD + 72;
         if (!sets.length) {
-          if (on) { ctx.fillStyle = C.mute; ctx.fillText(ex.s + ' séries · ' + ex.r + ' reps', x, y + 30); }
+          const det = CG.exDetails(ex, window.BTS_EXTRA, v.week, v.day), tech = det.tec && window.CGTips && CGTips.TECH[det.tec];
+          const info = [ex.s + ' séries · ' + ex.r + ' reps', det.rpeUlt ? 'RPE ' + det.rpeUlt : '', tech ? tech.short : ''].filter(Boolean).join(' · ');
+          if (on) { ctx.fillStyle = C.mute; ctx.fillText(info, x, y + 30); }
           y += 52;
         } else {
           y += 4;
