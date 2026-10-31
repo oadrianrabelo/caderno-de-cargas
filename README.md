@@ -38,6 +38,11 @@ Com internet, o app confere a última Release do GitHub (no máximo a cada 6 hor
   não abrir direito em 20 segundos, ele volta para a anterior.
 - **Mudou a parte Android** (plugins, permissões; raro): aparece um aviso com o botão *Baixar APK*.
 
+**Repositório privado:** a busca de versões precisa de um token só de leitura. Crie um token *fine-grained* em
+<https://github.com/settings/personal-access-tokens/new> com acesso apenas a este repositório e a permissão
+**Contents: Read-only**, e cole no app em **Versão → Salvar token**. O token fica só no aparelho (não vai no
+backup). Para baixar um APK de um repositório privado, entre na sua conta do GitHub no navegador do celular.
+
 > **Instalar um APK por cima:** o APK assinado com a keystore do repositório (`…-release.apk`) atualiza
 > por cima do anterior, sem perder dados. Sem keystore, o CI gera um `…-debug.apk` e tenta manter a mesma
 > chave debug entre builds; se a assinatura mudar, o Android pede para desinstalar, e **desinstalar
