@@ -28,9 +28,9 @@ test('atualização: não tenta de novo uma versão que já falhou', () => {
 test('atualização: lê a Release do GitHub', () => {
   const rel = { tag_name: 'v0.3.0', assets: [
     { name: 'caderno-de-cargas-0.3.0-release.apk', browser_download_url: 'https://x/app.apk' },
-    { name: 'web-42-0123456789ab.json', browser_download_url: 'https://x/web.json' },
+    { name: 'web-42-0123456789ab.json', browser_download_url: 'https://x/web.json', url: 'https://api/assets/9' },
   ] };
-  assert.deepEqual(parseRelease(rel), { build: 42, native: '0123456789ab', url: 'https://x/web.json', version: 'v0.3.0', apk: 'https://x/app.apk' });
+  assert.deepEqual(parseRelease(rel), { build: 42, native: '0123456789ab', url: 'https://x/web.json', api: 'https://api/assets/9', version: 'v0.3.0', apk: 'https://x/app.apk' });
   assert.equal(parseRelease({ tag_name: 'v0.1.0', assets: [{ name: 'a.apk' }] }), null);
   assert.equal(parseRelease(null), null);
 });

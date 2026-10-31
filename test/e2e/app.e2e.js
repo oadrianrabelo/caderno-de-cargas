@@ -459,6 +459,48 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
+    await t.test('atualização com repositório privado: pede token e baixa sem repassar o token no redirecionamento', async () => {
+      const files = fs.readdirSync(WWW).filter((f) => !f.startsWith('.') && f !== 'version.json');
+      const bundle = JSON.stringify({ version: 'v0.9.0', build: 9, native: 'aaaaaaaaaaaa', files: Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(WWW, f), 'utf8')])) });
+      const UPD = `
+        window.__http = [];
+        Object.assign(window.Capacitor.Plugins, {
+          WebUpdate: { confirm: async () => ({}), info: async () => ({ bad: 0 }), apply: async () => {} },
+          CapacitorHttp: { request: async (o) => {
+            window.__http.push({ url: o.url, auth: (o.headers || {}).Authorization || null, noRedirect: !!o.disableRedirects });
+            if (o.url === 'https://api.github.com/assets/9') return { status: 302, headers: { Location: 'https://storage/signed' }, data: '' };
+            return { status: 200, data: window.__bundle };
+          } }
+        });
+        Object.assign(window.Capacitor.Plugins.Filesystem, { getUri: async (o) => ({ uri: 'file:///d/' + o.path }), readdir: async () => ({ files: [] }), rmdir: async () => ({}) });`;
+      const ctx = await browser.newContext();
+      await ctx.addInitScript(FAKE_CAP); await ctx.addInitScript(UPD);
+      await ctx.addInitScript('window.__bundle = ' + JSON.stringify(bundle) + ';');
+      await ctx.route('**/version.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: 'v0.5.0', build: 5, native: 'aaaaaaaaaaaa' }) }));
+      await ctx.route('https://api.github.com/repos/**/releases/latest', (r) => {
+        if (r.request().headers().authorization !== 'Bearer leitura') return r.fulfill({ status: 404, body: '{}', headers: { 'Access-Control-Allow-Origin': '*' } });
+        return r.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ tag_name: 'v0.9.0', assets: [
+          { name: 'web-9-aaaaaaaaaaaa.json', browser_download_url: 'https://github.com/x/web.json', url: 'https://api.github.com/assets/9' }] }) });
+      });
+      const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await p.click('#bver');
+      await p.waitForSelector('#version >> text=Instalada: v0.5.0 (build 5)');
+      await p.click('#version >> text=Verificar atualização agora');
+      await p.waitForSelector('#version >> text=Repositório privado: cole um token de leitura');
+      await p.fill('#version input[type=password]', 'leitura');
+      await p.click('#version >> text=Salvar token');
+      await p.waitForSelector('#version >> text=Versão v0.9.0 baixada', { timeout: 10000 });
+      assert.deepEqual(await p.evaluate(() => window.__http), [
+        { url: 'https://api.github.com/assets/9', auth: 'Bearer leitura', noRedirect: true },
+        { url: 'https://storage/signed', auth: null, noRedirect: false },
+      ]);
+      assert.ok(await p.isVisible('#updnote >> text=Nova versão v0.9.0 baixada'));
+      // O token não vai no backup.
+      assert.ok(!(await p.evaluate(() => CGApp.snapshot())).includes('leitura'));
+      await ctx.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {
