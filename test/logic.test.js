@@ -105,12 +105,12 @@ test('backup: exportar e importar devolve os mesmos dados', () => {
   const custom = { '1-upper': [{ id: 'o0', n: 'A', s: 1, r: '5', t: '1 min', a: [] }] };
   const txt = CG.serializeBackup(logs, custom);
   assert.equal(JSON.parse(txt).v, 1);
-  assert.deepEqual(CG.parseBackup(txt), { logs, custom, programs: null });
+  assert.deepEqual(CG.parseBackup(txt), { logs, custom, programs: null, extra: null });
 });
 
 test('backup: importar substitui os dados e tolera custom ausente', () => {
-  assert.deepEqual(CG.parseBackup('{"v":1,"logs":{"a":1}}'), { logs: { a: 1 }, custom: {}, programs: null });
-  assert.deepEqual(CG.parseBackup('{"logs":{},"custom":"x"}'), { logs: {}, custom: {}, programs: null });
+  assert.deepEqual(CG.parseBackup('{"v":1,"logs":{"a":1}}'), { logs: { a: 1 }, custom: {}, programs: null, extra: null });
+  assert.deepEqual(CG.parseBackup('{"logs":{},"custom":"x"}'), { logs: {}, custom: {}, programs: null, extra: null });
 });
 
 test('backup: rejeita arquivos inválidos', () => {
@@ -224,4 +224,23 @@ test('exDetails: usa o que foi editado e completa com os detalhes do programa', 
   assert.deepEqual(CG.exDetails({ id: 'n123' }, extra, 1, 'upper'), {});
   assert.deepEqual(CG.exDetails({ id: 'o0' }, {}, 2, 'pull'), {});
   assert.deepEqual(CG.exDetails({ id: 'o0', rpe: '' }, undefined, 1, 'upper'), {});
+});
+
+test('warmCount: aceita número ou faixa e usa o máximo', () => {
+  assert.equal(CG.warmCount('2-3'), 3);
+  assert.equal(CG.warmCount('1'), 1);
+  assert.equal(CG.warmCount(2), 2);
+  assert.equal(CG.warmCount(''), 0);
+  assert.equal(CG.warmCount(undefined), 0);
+  assert.equal(CG.warmCount('99'), 6);
+});
+
+test('detalhes do programa: arquivo próprio, separado do backup, e incluído no backup', () => {
+  const extra = { 1: { upper: [{ aq: '2-3' }] } };
+  assert.deepEqual(CG.parseDetails(JSON.stringify({ type: 'caderno-detalhes', v: 1, extra })), extra);
+  assert.equal(CG.parseDetails(JSON.stringify({ v: 1, logs: {} })), null);
+  assert.equal(CG.parseDetails('lixo'), null);
+  const txt = CG.serializeBackup({}, {}, null, extra);
+  assert.deepEqual(CG.parseBackup(txt).extra, extra);
+  assert.equal(JSON.parse(CG.serializeBackup({}, {}, null, {})).extra, undefined);
 });

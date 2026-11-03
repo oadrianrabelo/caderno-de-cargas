@@ -177,9 +177,12 @@ function applyBackup(text) {
   if (!o) return false;
   logs = o.logs; custom = o.custom;
   if (o.programs) programs = o.programs; // backups antigos não têm programas: mantém os do aparelho
+  if (o.extra) setExtra(o.extra);
   applyProgram(); flushNow(); pickStart(); render();
   return true;
 }
+// Detalhes do programa importados pelo usuário (aquecimento, RPE, técnica): só no aparelho.
+function setExtra(extra) { window.BTS_EXTRA = extra; LS.set('cg:extra', JSON.stringify(extra)); }
 function applyProgram() {
   prog = (programs.active && programs.list && programs.list[programs.active]) || null;
   if (prog) {
@@ -195,7 +198,7 @@ const progDay = () => prog.days.find((d) => d.id === day);
 // Ponte para os scripts opcionais (native.js, sync.js). Sem eles o app funciona igual.
 const CGApp = window.CGApp = {
   saved: [],
-  snapshot: () => CG.serializeBackup(logs, custom, programs),
+  snapshot: () => CG.serializeBackup(logs, custom, programs, window.BTS_EXTRA),
   restore: applyBackup,
   // render() já cria o treino do dia vazio (t = 0); só conta o que foi preenchido.
   isEmpty: () => !Object.keys(custom).length && !Object.keys(programs.list || {}).length && Object.values(logs).every((l) => !l || !l.t),
@@ -343,7 +346,7 @@ function warmRow(ex, a, used, doc) {
 function detailTags(det) {
   const box = mk('div', 'det');
   const tag = (txt, key, cls) => { const b = mk('button', 'tag' + (cls ? ' ' + cls : ''), txt + ' ⓘ'); b.type = 'button'; b.addEventListener('click', () => CGTips.show(key)); box.appendChild(b); };
-  if (det.aq) tag(det.aq + (det.aq == 1 ? ' série' : ' séries') + ' de aquecimento', 'aquecimento');
+  if (det.aq) tag(det.aq + (String(det.aq) === '1' ? ' série' : ' séries') + ' de aquecimento', 'aquecimento');
   if (det.rpe || det.rpeUlt) tag('RPE ' + [det.rpe, det.rpeUlt ? 'última ' + det.rpeUlt : ''].filter(Boolean).join(' · '), 'rpe');
   if (det.tec && CGTips.TECH[det.tec]) tag('Última série: ' + CGTips.TECH[det.tec].short, det.tec, 'tec');
   return box.children.length ? box : null;
@@ -381,15 +384,6 @@ function editor(ex, i, list) {
   // Aquecimento, RPE e técnica (começam com os valores do programa, se houver).
   const det = CG.exDetails(ex, window.BTS_EXTRA, week, day);
   const r4 = mk('div', 'r2');
-  const lab4 = mk('label'); lab4.appendChild(document.createTextNode('Aquecimento'));
-  const st2 = mk('div', 'step');
-  const aq = det.aq || 0;
-  const mn2 = mk('button', null, '−'), val2 = mk('b', null, String(aq)), pl2 = mk('button', null, '+');
-  mn2.type = 'button'; pl2.type = 'button';
-  mn2.setAttribute('aria-label', 'Menos uma série de aquecimento'); pl2.setAttribute('aria-label', 'Mais uma série de aquecimento');
-  mn2.addEventListener('click', () => { if (aq > 0) { ex.aq = aq - 1; schedule(); render(); } });
-  pl2.addEventListener('click', () => { if (aq < 5) { ex.aq = aq + 1; schedule(); render(); } });
-  st2.append(mn2, val2, pl2); lab4.appendChild(st2);
   const field = (label, key, ph) => {
     const l = mk('label'); l.appendChild(document.createTextNode(label));
     const inp = mk('input'); inp.type = 'text'; inp.value = det[key] || ''; inp.placeholder = ph;
@@ -397,7 +391,8 @@ function editor(ex, i, list) {
     l.appendChild(inp);
     return l;
   };
-  r4.append(lab4, field('RPE séries', 'rpe', 'ex.: 7-8'), field('RPE última', 'rpeUlt', 'ex.: 9-10'));
+  r4.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
+  r4.append(field('Aquecimento', 'aq', 'ex.: 1-2'), field('RPE séries', 'rpe', 'ex.: 7-8'), field('RPE última', 'rpeUlt', 'ex.: 9-10'));
   box.appendChild(r4);
   const lab5 = mk('label'); lab5.appendChild(document.createTextNode('Técnica da última série'));
   const sel = mk('select'); sel.setAttribute('aria-label', 'Técnica da última série');
@@ -457,9 +452,10 @@ function renderList() {
     if (tags) card.appendChild(tags);
     const last = lastFor(used, k);
     const sets = mk('div', 'sets');
-    if (det.aq) {
+    const nWarm = CG.warmCount(det.aq);
+    if (nWarm) {
       sets.appendChild(mk('div', 'wlab', 'Aquecimento'));
-      for (let a = 0; a < det.aq; a++) sets.appendChild(warmRow(ex, a, used, doc));
+      for (let a = 0; a < nWarm; a++) sets.appendChild(warmRow(ex, a, used, doc));
       sets.appendChild(mk('div', 'wlab', 'Séries válidas'));
     }
     for (let s = 0; s < ex.s; s++) sets.appendChild(setRow(ex, i, s, used, last, doc, det));
@@ -534,7 +530,7 @@ $('bskip').addEventListener('click', () => {
 
 $('bexp').addEventListener('click', () => {
   flushNow();
-  const json = CG.serializeBackup(logs, custom, programs), name = CG.backupFileName(new Date());
+  const json = CG.serializeBackup(logs, custom, programs, window.BTS_EXTRA), name = CG.backupFileName(new Date());
   // No app Android, <a download> não funciona no WebView: grava o arquivo e abre o menu de compartilhar.
   if (window.CGNative) { CGNative.shareBackup(name, json).then(setStatus, () => setStatus('Não consegui exportar')); return; }
   const blob = new Blob([json], { type: 'application/json' });
@@ -551,6 +547,8 @@ $('fimp').addEventListener('change', () => {
   if (!f) return;
   const r = new FileReader();
   r.onload = () => {
+    const det = CG.parseDetails(r.result);
+    if (det) { setExtra(det); flushNow(); render(); setStatus('Detalhes do programa importados'); return; }
     if (!applyBackup(r.result)) { setStatus('Arquivo inválido'); return; }
     setStatus('Backup importado');
   };

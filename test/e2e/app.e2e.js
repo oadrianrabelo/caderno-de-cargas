@@ -428,7 +428,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.equal(await p.locator('.ex >> nth=0 >> .det').count(), 0);
       await p.click('#bedit');
       const ed = () => p.locator('.ed').first();
-      await ed().locator('[aria-label="Mais uma série de aquecimento"]').click();
+      await ed().locator('input[placeholder="ex.: 1-2"]').fill('1');
       await ed().locator('input[placeholder="ex.: 7-8"]').fill('8');
       await ed().locator('input[placeholder="ex.: 9-10"]').fill('10');
       await ed().locator('select').selectOption('myo');
@@ -499,6 +499,43 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       // O token não vai no backup.
       assert.ok(!(await p.evaluate(() => CGApp.snapshot())).includes('leitura'));
       await ctx.close();
+    });
+
+    await t.test('arquivo de detalhes do programa: importa, mostra faixas de aquecimento e vai no backup', async () => {
+      const det = { type: 'caderno-detalhes', v: 1, program: 'bts', extra: { 1: { upper: [{ aq: '2-3', rpe: '~6-7', rpeUlt: '~7-8' }, { aq: '1', rpeUlt: '10', tec: 'estatico' }] } } };
+      const file = path.join(os.tmpdir(), 'cg-e2e-det-' + process.pid + '.json');
+      fs.writeFileSync(file, JSON.stringify(det));
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await fill(p, '50', '8');
+      await p.setInputFiles('#fimp', file);
+      await p.waitForFunction(() => document.getElementById('status').textContent === 'Detalhes do programa importados');
+      // Importar detalhes não mexe nos treinos registrados.
+      assert.equal(await p.inputValue('.set:not(.warm) >> nth=0 >> input >> nth=0'), '50');
+      assert.deepEqual(await p.locator('.ex >> nth=0 >> .det .tag').allTextContents(), ['2-3 séries de aquecimento ⓘ', 'RPE ~6-7 · última ~7-8 ⓘ']);
+      assert.equal(await p.locator('.ex >> nth=0 >> .set.warm').count(), 3);
+      assert.deepEqual(await p.locator('.ex >> nth=1 >> .det .tag').allTextContents(), ['1 série de aquecimento ⓘ', 'RPE última 10 ⓘ', 'Última série: Along. estático ⓘ']);
+      await p.reload();
+      await p.click('.tab >> nth=0');
+      assert.equal(await p.locator('.ex >> nth=0 >> .set.warm').count(), 3);
+      const snap = JSON.parse(await p.evaluate(() => CGApp.snapshot()));
+      assert.deepEqual(snap.extra, det.extra);
+      // Editar o exercício sobrepõe o detalhe importado.
+      await p.click('#bedit');
+      assert.equal(await p.inputValue('.ed >> nth=0 >> input[placeholder="ex.: 1-2"]'), '2-3');
+      await p.fill('.ed >> nth=0 >> input[placeholder="ex.: 1-2"]', '1');
+      await p.click('#bedit');
+      assert.equal(await p.locator('.ex >> nth=0 >> .set.warm').count(), 1);
+      // Um backup com detalhes, importado em outro aparelho, traz os detalhes.
+      fs.writeFileSync(file, JSON.stringify(snap));
+      const ctx2 = await browser.newContext(); const p2 = await ctx2.newPage(); watch(p2);
+      await p2.goto(url);
+      await p2.setInputFiles('#fimp', file);
+      await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup importado');
+      await p2.click('.tab >> nth=0');
+      assert.equal(await p2.locator('.ex >> nth=1 >> .tag.tec').textContent(), 'Última série: Along. estático ⓘ');
+      fs.unlinkSync(file);
+      await ctx.close(); await ctx2.close();
     });
 
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));

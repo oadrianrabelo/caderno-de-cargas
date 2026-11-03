@@ -24,6 +24,12 @@
     return out;
   }
 
+  // Séries de aquecimento podem vir como faixa ("2-3"): mostra uma linha por série até o máximo.
+  function warmCount(v) {
+    const m = String(v == null ? '' : v).match(/\d+/g);
+    return m ? Math.min(6, Math.max(...m.map(Number))) : 0;
+  }
+
   // Devolve a lista editável do dia, criando-a a partir do programa base se ainda não existir.
   function editList(custom, P, w, d) {
     const k = w + '-' + d;
@@ -137,10 +143,17 @@
     return { id: newId('p'), name, weeks: Math.max(1, Math.min(52, Math.round(weeks) || 1)), days };
   }
 
-  function serializeBackup(logs, custom, programs) {
+  function serializeBackup(logs, custom, programs, extra) {
     const o = { v: 1, logs, custom };
     if (programs && programs.list && Object.keys(programs.list).length) o.programs = programs;
+    if (extra && Object.keys(extra).length) o.extra = extra;
     return JSON.stringify(o);
+  }
+
+  // Arquivo de detalhes do programa (aquecimento, RPE, técnica) importado pelo usuário. Fica só no aparelho.
+  function parseDetails(text) {
+    const o = parse(text, null);
+    return o && o.type === 'caderno-detalhes' && o.extra && typeof o.extra === 'object' ? o.extra : null;
   }
 
   // Lê um backup. Importar substitui os dados atuais (não mescla). Devolve null se o arquivo for inválido.
@@ -149,14 +162,15 @@
     const o = parse(text, null);
     if (!o || typeof o.logs !== 'object') return null;
     const programs = o.programs && typeof o.programs === 'object' && o.programs.list && typeof o.programs.list === 'object' ? o.programs : null;
-    return { logs: o.logs, custom: o.custom && typeof o.custom === 'object' ? o.custom : {}, programs };
+    const extra = o.extra && typeof o.extra === 'object' ? o.extra : null;
+    return { logs: o.logs, custom: o.custom && typeof o.custom === 'object' ? o.custom : {}, programs, extra };
   }
 
   function backupFileName(d) {
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, newId, makeProgram, serializeBackup, parseBackup, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
