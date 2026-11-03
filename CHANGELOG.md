@@ -2,6 +2,13 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.2.9 (2026-11-03)
+
+- Gráfico de volume por semana no Progresso, com a semana atual destacada.
+- Substituição lembrada: se você trocou o exercício pela alternativa, ela já vem escolhida nas próximas semanas.
+- Atalho "Preencher com as cargas da última vez" no topo do dia, sem marcar nada como feito.
+- Exportar planilha (CSV) com todas as séries, para abrir no Excel ou no Google Sheets (Mais ▾).
+
 ## v0.2.8 (2026-11-03)
 
 - Sugestão de carga: quando você bateu o topo das reps em todas as séries, os números cinza e o ✓ usam a carga + 2,5 kg (ajustável em Anilhas).

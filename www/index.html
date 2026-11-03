@@ -445,7 +445,8 @@ function renderList() {
   const doc = getDoc(), k = ckey();
   const list = editing ? editList() : getList();
   list.forEach((ex, i) => {
-    const used = (doc.ex[ex.id] && doc.ex[ex.id].used) || ex.n;
+    // Variação escolhida neste treino; se ainda não escolheu, a usada da última vez (substituição lembrada).
+    const used = (doc.ex[ex.id] && doc.ex[ex.id].used) || CG.preferredVariant(logs, day, ex.id, [ex.n].concat(ex.a || []), k) || ex.n;
     const card = mk('section', 'ex');
     const h = mk('div', 'exh');
     h.appendChild(mk('div', 'idx', String(i + 1)));
@@ -638,6 +639,7 @@ setStatus(storageOk ? 'Pronto' : 'Sem armazenamento');
 <script src="session.js"></script>
 <script src="plates.js"></script>
 <script src="focus.js"></script>
+<script src="quick.js"></script>
 <script src="changelog.js"></script>
 <script src="prefs.js"></script>
 <script src="update.js"></script>

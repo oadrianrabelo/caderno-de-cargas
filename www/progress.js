@@ -20,7 +20,7 @@
     '.pg .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--mute);font-size:12px}.pg .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}' +
     '.pg .exl{display:flex;flex-direction:column;gap:8px}.pg .exr{display:grid;grid-template-columns:1fr 84px;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:8px}' +
     '.pg .exr b{display:block;font-weight:600;overflow-wrap:anywhere}.pg .exr small{color:var(--mute);font-variant-numeric:tabular-nums}.pg .exr svg{width:84px;height:30px}' +
-    '.pg .r{display:flex;flex-wrap:wrap;gap:8px}';
+    '.pg .r{display:flex;flex-wrap:wrap;gap:8px}.pg svg.vol{width:100%;height:auto;display:block}';
   document.head.appendChild(css);
 
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
@@ -79,6 +79,27 @@
       const k = mk('div', 'kpi'); k.append(mk('b', null, b), mk('span', null, t)); wks.appendChild(k);
     });
     panel.appendChild(wks);
+
+    // Volume por semana do programa (barras), com a semana atual destacada.
+    const vols = CG.volumeByWeek(v.logs, v.ORDER, v.WEEKS), vmax = Math.max(1, ...vols);
+    panel.appendChild(mk('h3', null, 'Volume por semana'));
+    const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + (v.WEEKS * 24) + ' 110'); svg.setAttribute('class', 'vol'); svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'Volume por semana: ' + vols.map((x, i) => 'S' + (i + 1) + ' ' + x + ' kg').join(', '));
+    vols.forEach((x, i) => {
+      const h = x ? Math.max(3, (x / vmax) * 80) : 2, r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', i * 24 + 4); r.setAttribute('y', 88 - h); r.setAttribute('width', 16); r.setAttribute('height', h); r.setAttribute('rx', 3);
+      r.setAttribute('fill', i + 1 === v.week ? 'var(--day, var(--accent))' : x ? 'var(--done)' : 'var(--line)');
+      const t = document.createElementNS(ns, 'text');
+      t.setAttribute('x', i * 24 + 12); t.setAttribute('y', 104); t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '9'); t.setAttribute('fill', 'var(--mute)');
+      t.textContent = 'S' + (i + 1);
+      const tt = document.createElementNS(ns, 'title'); tt.textContent = 'Semana ' + (i + 1) + ': ' + x.toLocaleString('pt-BR') + ' kg';
+      r.appendChild(tt);
+      svg.append(r, t);
+    });
+    panel.appendChild(svg);
+    const best = vols.indexOf(Math.max(...vols));
+    if (vols[best]) panel.appendChild(mk('p', null, 'Maior volume: semana ' + (best + 1) + ' (' + vols[best].toLocaleString('pt-BR') + ' kg). Semana ' + v.week + ': ' + vols[v.week - 1].toLocaleString('pt-BR') + ' kg.'));
 
     // Calendário das últimas 5 semanas (segunda a domingo).
     panel.appendChild(mk('h3', null, 'Calendário'));

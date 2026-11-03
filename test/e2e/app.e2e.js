@@ -795,6 +795,48 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
+    await t.test('volume por semana, substituição lembrada, repetir cargas e planilha CSV', async () => {
+      const ctx = await browser.newContext({ acceptDownloads: true }); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      const ex0 = () => p.locator('.ex >> nth=0');
+      // Semana 1: troca o supino pela alternativa de halter e registra.
+      await ex0().locator('.chip >> text=45° Incline DB Press').click();
+      const r0 = ex0().locator('.set:not(.warm) >> nth=0');
+      await r0.locator('input >> nth=0').fill('24'); await r0.locator('input >> nth=1').fill('8'); await r0.locator('.ck').click();
+      assert.equal(await p.isVisible('#brepeat'), false); // dia já tem registro
+      // Semana 2: a alternativa já vem escolhida; 8 reps foi o topo da faixa, então o atalho usa a sugestão 26,5 × 6, sem marcar.
+      await p.click('#wnext');
+      assert.equal(await ex0().locator('h2').textContent(), '45° Incline DB Press');
+      assert.equal(await ex0().locator('.chip[aria-pressed="true"]').textContent(), '45° Incline DB Press');
+      assert.ok(await p.isVisible('#brepeat'));
+      await p.click('#brepeat');
+      assert.equal(await ex0().locator('.set:not(.warm) >> nth=0 >> input >> nth=0').inputValue(), '26.5');
+      assert.equal(await ex0().locator('.set:not(.warm) >> nth=0 >> input >> nth=1').inputValue(), '6');
+      assert.equal(await p.locator('.set.done').count(), 0);
+      assert.equal(await p.isVisible('#brepeat'), false);
+      await ex0().locator('.set:not(.warm) >> nth=0 >> .ck').click();
+      // O histórico da alternativa tem as duas semanas.
+      await ex0().locator('.hbtn').click();
+      assert.equal(await p.locator('.hist li').count(), 2);
+      await p.click('.tipbox >> text=Fechar');
+      // Volume por semana: S1 = 24×8 = 192, S2 = 26,5×6 = 159.
+      await p.click('#bprog');
+      assert.match(await p.getAttribute('#progress svg.vol', 'aria-label'), /^Volume por semana: S1 192 kg, S2 159 kg, S3 0 kg/);
+      assert.equal(await p.locator('#progress svg.vol rect').count(), 12);
+      await p.click('#bprog');
+      // Planilha CSV.
+      const [dl] = await Promise.all([p.waitForEvent('download'), tool(p, '#bcsv')]);
+      assert.match(dl.suggestedFilename(), /^caderno-de-cargas-\d{4}-\d{2}-\d{2}\.csv$/);
+      const text = fs.readFileSync(await dl.path(), 'utf8');
+      const lines = text.replace(/^\ufeff/, '').trim().split('\r\n');
+      // S1: 1 série; S2: as 3 séries preenchidas pelo atalho, só a 1ª marcada.
+      assert.equal(lines.length, 5);
+      assert.match(lines[1], /;1;Upper;45° Incline DB Press;valida;1;24;8;sim;;$/);
+      assert.match(lines[2], /;2;Upper;45° Incline DB Press;valida;1;26,5;6;sim;;$/);
+      assert.match(lines[4], /;2;Upper;45° Incline DB Press;valida;3;26,5;6;não;;$/);
+      await ctx.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {

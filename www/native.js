@@ -19,6 +19,17 @@
       }
       return 'Backup exportado';
     },
+    // Arquivo de texto qualquer (planilha CSV, por exemplo) para o menu de compartilhar.
+    async shareFile(name, text, title) {
+      const { uri } = await FS.writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
+      try {
+        await Share.share({ title: title || name, files: [uri], dialogTitle: title || 'Compartilhar' });
+      } catch (e) {
+        if (/cancel/i.test(String(e && e.message))) return 'Compartilhamento fechado';
+        throw e;
+      }
+      return 'Arquivo compartilhado';
+    },
     // Imagem (PNG em base64, sem o prefixo data:) para o menu de compartilhar: WhatsApp, Instagram, galeria...
     async shareImage(name, base64) {
       const { uri } = await FS.writeFile({ path: name, data: base64, directory: 'CACHE' });

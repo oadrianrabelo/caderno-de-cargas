@@ -1,5 +1,11 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.2.9', date: '2026-11-03', items: [
+    'Gráfico de volume por semana no Progresso, com a semana atual destacada.',
+    'Substituição lembrada: se você trocou o exercício pela alternativa, ela já vem escolhida nas próximas semanas.',
+    'Atalho "Preencher com as cargas da última vez" no topo do dia, sem marcar nada como feito.',
+    'Exportar planilha (CSV) com todas as séries, para abrir no Excel ou no Google Sheets (Mais ▾).'
+  ] },
   { version: 'v0.2.8', date: '2026-11-03', items: [
     'Sugestão de carga: quando você bateu o topo das reps em todas as séries, os números cinza e o ✓ usam a carga + 2,5 kg (ajustável em Anilhas).',
     'Resumo da semana no Progresso: treinos, séries, volume, recordes e energia média, com imagem para compartilhar.',
