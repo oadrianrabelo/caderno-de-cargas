@@ -66,7 +66,13 @@
     tot.addEventListener('input', calc); bar.addEventListener('change', calc);
     const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'btn pri'; ok.textContent = 'Fechar';
     ok.addEventListener('click', () => { ov.hidden = true; });
-    box.append(h, l1, l2, viz, res, warn, hl, hv, ok);
+    const l3 = document.createElement('label'); l3.textContent = 'Incremento da sugestão de carga';
+    const inc = document.createElement('select'); inc.setAttribute('aria-label', 'Incremento da sugestão de carga');
+    let cur = '2.5'; try { cur = localStorage.getItem('cg:inc') || '2.5'; } catch (e) { /* sem armazenamento */ }
+    ['1', '2', '2.5', '5'].forEach((v) => { const o = document.createElement('option'); o.value = v; o.textContent = '+' + kgs(v) + ' kg'; o.selected = v === cur; inc.appendChild(o); });
+    inc.addEventListener('change', () => { try { localStorage.setItem('cg:inc', inc.value); } catch (e) { /* sem armazenamento */ } if (window.CGApp) CGApp.go(CGApp.view().week, CGApp.view().day); });
+    l3.appendChild(inc);
+    box.append(h, l1, l2, viz, res, warn, hl, hv, l3, ok);
     ov.appendChild(box); ov.hidden = false;
     calc();
     tot.focus();

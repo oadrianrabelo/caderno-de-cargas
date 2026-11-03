@@ -570,7 +570,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       const set2 = p.locator('.ex >> nth=0 >> .set:not(.warm) >> nth=1');
       await set2.locator('input').nth(0).fill('60'); await set2.locator('input').nth(1).fill('8'); await set2.locator('.ck').click();
       await p.click('#wnext');
-      assert.equal(await p.textContent('.ex >> nth=0 >> .tag.tec'), '↑ Bateu 8 reps em todas: suba a carga ⓘ');
+      assert.equal(await p.textContent('.ex >> nth=0 >> .tag.tec'), '↑ Bateu 8 reps em todas: tente 62,5 kg ⓘ');
       await p.click('.ex >> nth=0 >> .tag.tec');
       assert.equal(await p.textContent('.tipbox h2'), 'Hora de subir a carga');
       await p.click('.tipbox >> text=Entendi');
@@ -730,6 +730,68 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.click('#bfocus');
       assert.equal(await p.textContent('#bfocus'), 'Modo foco');
       assert.equal(await p.locator('.ex:visible').count(), 7);
+      await ctx.close();
+    });
+
+    await t.test('sugestão de carga, semana, nota anterior, tema, tela acesa e novidades', async () => {
+      const ctx = await browser.newContext({ colorScheme: 'light' });
+      // Trava de tela falsa para contar pedidos e liberações.
+      await ctx.addInitScript(() => {
+        window.__wake = { req: 0, rel: 0 };
+        Object.defineProperty(navigator, 'wakeLock', { value: { request: async () => { window.__wake.req++; const l = new EventTarget(); l.release = async () => { window.__wake.rel++; l.dispatchEvent(new Event('release')); }; return l; } } });
+      });
+      const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      assert.equal(await p.evaluate(() => window.__wake.req), 0); // não acende só por abrir
+      const ex0 = () => p.locator('.ex >> nth=0');
+      const mark = async (card, i, kg, reps) => { const r = card.locator('.set:not(.warm)').nth(i); await r.locator('input').nth(0).fill(kg); await r.locator('input').nth(1).fill(reps); await r.locator('.ck').click(); };
+      await mark(ex0(), 0, '60', '8'); await mark(ex0(), 1, '60', '8');
+      assert.equal(await p.evaluate(() => window.__wake.req), 1);
+      await p.click('#sess [aria-label="Energia 4: Bom"]');
+      await p.fill('#sess textarea', 'Banco na posição 4');
+      await p.waitForFunction(() => document.getElementById('status').textContent === 'Salvo');
+      // Semana 2: sugestão 62,5 × 6 (topo 8 batido); ✓ vazio usa a sugestão.
+      await p.click('#wnext');
+      assert.match(await p.textContent('#prevnote'), /Da última vez \(semana 1, .*\): 🙂 Banco na posição 4/);
+      const s0 = ex0().locator('.set:not(.warm) >> nth=0');
+      assert.equal(await s0.locator('input >> nth=0').getAttribute('placeholder'), '62.5');
+      assert.equal(await s0.locator('input >> nth=1').getAttribute('placeholder'), '6');
+      assert.ok(await s0.locator('.fld >> nth=0').evaluate((e) => e.classList.contains('sug')));
+      await s0.locator('.ck').click();
+      assert.equal(await s0.locator('input >> nth=0').inputValue(), '62.5');
+      // Incremento ajustável na calculadora de anilhas.
+      await tool(p, '#bplates');
+      await p.selectOption('.pl select[aria-label="Incremento da sugestão de carga"]', '5');
+      await p.click('.pl >> text=Fechar');
+      await p.click('#wnext');
+      await p.click('#wprev');
+      assert.equal(await ex0().locator('.set:not(.warm) >> nth=1 >> input >> nth=0').getAttribute('placeholder'), '65');
+      // Resumo da semana no Progresso.
+      await p.click('#bprog');
+      assert.deepEqual(await p.locator('#weekkpis b').allTextContents(), ['2', '1.335 kg', '1', '4 / 5']);
+      const [img] = await Promise.all([p.waitForEvent('download').catch(() => null), p.click('#progress >> text=Imagem da semana')]);
+      assert.ok(img === null || /^semana-.*\.png$/.test(img.suggestedFilename()));
+      await p.click('#bprog');
+      // Tema: automático → claro → escuro, e a cor do dia acompanha.
+      assert.equal(await p.textContent('#btheme'), 'Tema: automático');
+      await tool(p, '#btheme'); await p.click('#btheme');
+      assert.equal(await p.textContent('#btheme'), 'Tema: escuro');
+      assert.equal(await p.evaluate(() => document.documentElement.dataset.theme), 'dark');
+      assert.equal(await p.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(14, 18, 23)');
+      assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--day').trim()), '#7b9cff');
+      await p.reload();
+      assert.equal(await p.evaluate(() => document.documentElement.dataset.theme), 'dark');
+      // Novidades: aparece depois de uma atualização (versão vista diferente) e fica no menu.
+      await p.evaluate(() => localStorage.setItem('cg:seenVersion', 'v0.2.6'));
+      await p.reload();
+      await p.waitForSelector('.tipbox >> text=Novidades da atualização');
+      assert.ok(await p.locator('.tipbox h3', { hasText: 'v0.2.7' }).count() === 1);
+      await p.click('.tipbox >> text=Fechar');
+      await p.reload();
+      await p.waitForTimeout(600);
+      assert.equal(await p.isVisible('.tipbox'), false);
+      await tool(p, '#bnews');
+      assert.equal(await p.textContent('.tipbox h2'), 'Novidades');
       await ctx.close();
     });
 

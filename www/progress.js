@@ -70,6 +70,16 @@
       panel.appendChild(p);
     } else panel.appendChild(mk('p', null, 'Nenhum treino feito ainda neste programa.'));
 
+    // Esta semana (segunda a domingo).
+    const wk = CG.weekSummary(v.logs, Date.now());
+    panel.appendChild(mk('h3', null, 'Esta semana · desde ' + shortDate(wk.start)));
+    const wks = mk('div', 'kpis'); wks.id = 'weekkpis';
+    [[String(wk.sessions), wk.sessions === 1 ? 'treino' : 'treinos'], [wk.volume.toLocaleString('pt-BR') + ' kg', 'volume (' + wk.sets + ' séries)'],
+      [String(wk.records), wk.records === 1 ? 'recorde 🏅' : 'recordes 🏅'], [wk.energy ? String(wk.energy).replace('.', ',') + ' / 5' : '—', 'energia média']].forEach(([b, t]) => {
+      const k = mk('div', 'kpi'); k.append(mk('b', null, b), mk('span', null, t)); wks.appendChild(k);
+    });
+    panel.appendChild(wks);
+
     // Calendário das últimas 5 semanas (segunda a domingo).
     panel.appendChild(mk('h3', null, 'Calendário'));
     const cal = mk('div', 'cal'), marks = CG.calendar(v.logs), today = new Date();
@@ -127,10 +137,11 @@
 
     panel.appendChild(mk('h3', null, 'Compartilhar'));
     const r = mk('div', 'r');
-    const b1 = button('btn pri', 'Imagem do treino (' + v.NAMES[v.day] + ' · S' + v.week + ')'), b2 = button('btn', 'Imagem do progresso');
+    const b1 = button('btn pri', 'Imagem do treino (' + v.NAMES[v.day] + ' · S' + v.week + ')'), b2 = button('btn', 'Imagem do progresso'), b3 = button('btn', 'Imagem da semana');
     b1.addEventListener('click', () => share(workoutCard(v), 'treino-' + CG.isoDay(Date.now()) + '.png'));
     b2.addEventListener('click', () => share(progressCard(v, sum, prog), 'progresso-' + CG.isoDay(Date.now()) + '.png'));
-    r.append(b1, b2);
+    b3.addEventListener('click', () => share(weekCard(v, wk), 'semana-' + CG.isoDay(wk.start) + '.png'));
+    r.append(b1, b2, b3);
     panel.appendChild(r);
   }
 
@@ -244,6 +255,37 @@
       y += 10;
       const min = CG.sessionDuration(doc);
       return footer(ctx, on, y, done + ' de ' + total + ' séries' + (vol ? ' · ' + Math.round(vol).toLocaleString('pt-BR') + ' kg' : '') + (min ? ' · ' + min + ' min' : ''));
+    });
+  }
+
+  function weekCard(v, wk) {
+    return render((ctx, on) => {
+      const end = new Date(wk.start + 6 * 86400000);
+      let y = header(ctx, on, v.program, 'Minha semana', shortDate(wk.start) + ' a ' + end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+      y += 48;
+      const k = [[String(wk.sessions), wk.sessions === 1 ? 'treino' : 'treinos'], [wk.sets + '', 'séries'], [Math.round(wk.volume / 100) / 10 + ' t', 'volume'], [String(wk.records), 'recordes']];
+      const kw = (W - PAD * 2 - 3 * 20) / 4;
+      if (on) k.forEach(([b, t], i) => {
+        const x = PAD + i * (kw + 20);
+        ctx.fillStyle = C.card; ctx.beginPath(); ctx.roundRect(x, y, kw, 150, 18); ctx.fill();
+        ctx.fillStyle = C.ink; ctx.font = '700 60px ' + COND; ctx.fillText(b.replace('.', ','), x + 24, y + 82);
+        ctx.fillStyle = C.mute; ctx.font = '500 28px ' + FONT; ctx.fillText(t, x + 24, y + 124);
+      });
+      y += 190;
+      // Dias da semana: bolinha cheia nos dias treinados.
+      const marks = CG.calendar(v.logs), names = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'], cw = (W - PAD * 2) / 7;
+      names.forEach((n, i) => {
+        const iso = CG.isoDay(wk.start + i * 86400000 + 12 * 3600000), cx = PAD + cw * i + cw / 2, st = marks[iso];
+        if (on) {
+          ctx.beginPath(); ctx.arc(cx, y + 40, 34, 0, Math.PI * 2);
+          if (st === 'done') { ctx.fillStyle = C.done; ctx.fill(); }
+          else if (st === 'skip') { ctx.setLineDash([6, 5]); ctx.strokeStyle = C.mute; ctx.lineWidth = 3; ctx.stroke(); ctx.setLineDash([]); }
+          else { ctx.fillStyle = C.card; ctx.fill(); }
+          ctx.fillStyle = C.mute; ctx.font = '600 24px ' + FONT; ctx.textAlign = 'center'; ctx.fillText(n, cx, y + 112); ctx.textAlign = 'left';
+        }
+      });
+      y += 150;
+      return footer(ctx, on, y, wk.energy ? 'Energia média ' + String(wk.energy).replace('.', ',') + ' / 5' : 'Bora pra próxima!');
     });
   }
 

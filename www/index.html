@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Caderno de Cargas</title>
+<script>try { var th = localStorage.getItem('cg:theme'); if (th === 'light' || th === 'dark') document.documentElement.dataset.theme = th; } catch (e) { /* sem armazenamento */ }</script>
 <style>
 :root {
   --bg: #eceff2; --card: #ffffff; --ink: #14191f; --mute: #5d6773; --line: #d5dae0;
@@ -14,7 +15,10 @@
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #0e1217; --card: #171d24; --ink: #eaeef2; --mute: #96a1ad; --line: #2a323b; --accent: #7b9cff; --accent-ink: #0b1020; --done: #5fd593; --done-bg: #123325; --field: #1e252d; --danger: #ff8a80; color-scheme: dark; }
+  /* Tema escolhido no app vale mais que o do celular. */
+  :root[data-theme="light"] { --bg: #eceff2; --card: #ffffff; --ink: #14191f; --mute: #5d6773; --line: #d5dae0; --accent: #1f4fd8; --accent-ink: #ffffff; --done: #1d7f4e; --done-bg: #e1f3e9; --field: #f5f7f9; --danger: #b3261e; color-scheme: light; }
 }
+:root[data-theme="dark"] { --bg: #0e1217; --card: #171d24; --ink: #eaeef2; --mute: #96a1ad; --line: #2a323b; --accent: #7b9cff; --accent-ink: #0b1020; --done: #5fd593; --done-bg: #123325; --field: #1e252d; --danger: #ff8a80; color-scheme: dark; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { background: var(--bg); }
@@ -60,6 +64,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(-
 .fld { position: relative; }
 .fld input { width: 100%; height: 52px; border: 1px solid var(--line); background: var(--field); color: var(--ink); border-radius: 8px; padding: 0 30px 0 12px; font: 600 22px/1 var(--f-body); font-variant-numeric: tabular-nums; }
 .fld input::placeholder { color: var(--mute); opacity: .55; font-weight: 500; }
+.fld.sug input::placeholder { color: var(--day, var(--accent)); opacity: .9; font-weight: 700; }
 .fld small { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); color: var(--mute); font-size: 12px; pointer-events: none; }
 .x { text-align: center; color: var(--mute); font-weight: 600; }
 .ck { height: 52px; width: 52px; border: 1px solid var(--line); background: var(--card); color: var(--mute); border-radius: 8px; cursor: pointer; display: grid; place-items: center; padding: 0; }
@@ -277,7 +282,9 @@ function renderTabs() {
 
 function setRow(ex, i, s, used, last, doc, det) {
   const cur = (doc.ex[ex.id] && doc.ex[ex.id].sets[s]) || {};
-  const lastSet = last ? (last[s] || last[Object.keys(last).pop()]) : null;
+  // Com a dica de subir a carga, os números cinza (e o ✓ com campos vazios) usam a carga sugerida.
+  const sug = det && det.sug;
+  const lastSet = sug ? sug : last ? (last[s] || last[Object.keys(last).pop()]) : null;
   const row = mk('div', 'set' + (cur.done ? ' done' : ''));
   const sl = mk('div', 'sl', 'S' + (s + 1));
   // Última série com técnica de intensidade: mostra o nome curto embaixo do número.
@@ -287,6 +294,7 @@ function setRow(ex, i, s, used, last, doc, det) {
   const f1 = mk('div', 'fld'), kg = mk('input');
   kg.type = 'number'; kg.inputMode = 'decimal'; kg.step = '0.5'; kg.min = '0'; kg.value = cur.kg || '';
   kg.placeholder = lastSet && lastSet.kg ? String(lastSet.kg) : '0';
+  if (sug) f1.classList.add('sug');
   kg.setAttribute('aria-label', 'Carga, série ' + (s + 1) + ', ' + used);
   f1.appendChild(kg); f1.appendChild(mk('small', null, 'kg'));
 
@@ -319,6 +327,7 @@ function setRow(ex, i, s, used, last, doc, det) {
     write(nd ? { kg: kg.value, reps: rp.value, done: true, at: Date.now() } : { kg: kg.value, reps: rp.value, done: false });
     // Série feita: começa o descanso do exercício (não na última série do último exercício).
     if (nd && window.CGTimer) CGTimer.start(CG.restSeconds(ex.t), used);
+    if (nd && window.CGWake) CGWake.on();
     row.classList.toggle('done', nd);
     ck.setAttribute('aria-pressed', String(nd));
     renderTabs();
@@ -462,8 +471,9 @@ function renderList() {
     const last = lastFor(used, k);
     const tags = detailTags(det) || mk('div', 'det');
     const hint = CG.progressHint(last, ex.s, ex.r);
+    det.sug = CG.suggestNext(hint, ex.r, LS.get('cg:inc') || 2.5);
     if (hint) {
-      const b = mk('button', 'tag tec', '↑ Bateu ' + hint.top + ' reps em todas: suba a carga ⓘ'); b.type = 'button';
+      const b = mk('button', 'tag tec', '↑ Bateu ' + hint.top + ' reps em todas: tente ' + String(det.sug ? det.sug.kg : '').replace('.', ',') + ' kg ⓘ'); b.type = 'button';
       b.addEventListener('click', () => CGTips.show('progressao'));
       tags.appendChild(b);
     }
@@ -617,7 +627,7 @@ render();
 backupNote();
 CGApp.saved.push(backupNote);
 setStatus(storageOk ? 'Pronto' : 'Sem armazenamento');
-try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) { /* opcional */ }
+// A tela fica acesa só durante o treino (timer.js: CGWake).
 </script>
 <script src="native.js"></script>
 <script src="sync.js"></script>
@@ -628,6 +638,8 @@ try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {
 <script src="session.js"></script>
 <script src="plates.js"></script>
 <script src="focus.js"></script>
+<script src="changelog.js"></script>
+<script src="prefs.js"></script>
 <script src="update.js"></script>
 <script src="menu.js"></script>
 </body>

@@ -11,7 +11,7 @@
     '.sess .en button{height:52px;border:1px solid var(--line);background:var(--field);border-radius:10px;font-size:24px;cursor:pointer;transition:transform .15s,border-color .15s}' +
     '.sess .en button[aria-pressed="true"]{border-color:var(--day,var(--accent));background:transparent;transform:scale(1.06)}' +
     '.sess textarea{width:100%;min-height:64px;resize:vertical;border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:8px;padding:10px;font:500 15px/1.4 var(--f-body)}' +
-    '.sess .du{color:var(--mute);font-size:14px}' +
+    '.sess .du{color:var(--mute);font-size:14px}.sess .prevnote{background:var(--field);border-left:3px solid var(--day,var(--accent));border-radius:6px;padding:8px 10px;font-size:14px;color:var(--ink)}' +
     '.set.pr .sl::after{content:"🏅";display:block;font-size:14px;line-height:1;margin-top:2px}' +
     '.toast{position:fixed;left:50%;top:max(16px,env(safe-area-inset-top,0px));z-index:70;transform:translate(-50%,-140%);max-width:calc(100% - 32px);' +
     'background:#1d7f4e;color:#fff;border-radius:12px;padding:12px 16px;font:600 15px/1.3 var(--f-body);box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.2,.8,.2,1)}' +
@@ -57,6 +57,13 @@
     ta.addEventListener('input', () => { const d = app.doc(); d.note = ta.value; app.touch(d); });
     const du = mk('div', 'du', durText(doc)); du.id = 'sessdur';
     box.append(en, ta, du);
+    const v = app.view(), prev = CG.lastNote(v.logs, v.day, v.week + '-' + v.day);
+    if (prev) {
+      const pn = mk('div', 'prevnote'); pn.id = 'prevnote';
+      pn.textContent = 'Da última vez (semana ' + prev.week + ', ' + new Date(prev.t).toLocaleDateString('pt-BR') + '): ' +
+        (prev.energy ? ENERGY[prev.energy - 1][0] + ' ' : '') + (prev.note || ENERGY[prev.energy - 1][1]);
+      box.insertBefore(pn, en);
+    }
     list.after(box);
   }
 

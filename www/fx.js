@@ -7,7 +7,7 @@
   // Cores por dia (claro / escuro). Programas próprios usam a paleta em sequência.
   const DAY = { upper: 0, lower: 1, pull: 2, push: 3, legs: 4 };
   const PALETTE = [['#1f4fd8', '#7b9cff'], ['#d9480f', '#ff9a5c'], ['#0c8599', '#4fd1e0'], ['#c92a2a', '#ff8787'], ['#7048e8', '#b197fc'], ['#e67700', '#ffc94d'], ['#5c940d', '#a9e34b']];
-  const dark = () => window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); };
   const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const css = document.createElement('style');
@@ -133,6 +133,7 @@
     seen[st.key] = 1;
     try { sessionStorage.setItem('cg:cele', JSON.stringify(seen)); } catch (e) { /* sem sessionStorage */ }
     if (window.CGTimer) CGTimer.stop();
+    if (window.CGWake) CGWake.off();
     const ov = document.createElement('div'); ov.className = 'cele'; ov.id = 'cele';
     const box = document.createElement('div'); box.className = 'box'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
     const big = document.createElement('div'); big.className = 'big'; big.textContent = '🏆';
@@ -164,6 +165,7 @@
   }
 
   if (window.matchMedia) { try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setDayColor); } catch (e) { /* WebView antigo */ } }
+  document.addEventListener('cg:theme', setDayColor);
   setDayColor();
   markCards();
   lastKey = app.view().week + '-' + app.view().day;

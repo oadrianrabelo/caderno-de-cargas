@@ -61,5 +61,17 @@
   function stop() { clearInterval(tick); clearTimeout(hideTm); end = 0; bar.hidden = true; document.body.classList.remove('timing'); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && end) draw(); });
 
+  // Tela acesa só durante o treino: liga ao marcar uma série; desliga ao concluir ou após 30 min sem marcar nada.
+  const IDLE_MS = 30 * 60000;
+  let lock = null, lastSet = 0, idleTm = null;
+  async function wakeOn(keep) {
+    if (!keep) { lastSet = Date.now(); clearTimeout(idleTm); idleTm = setTimeout(wakeOff, IDLE_MS); }
+    try { if (!lock && navigator.wakeLock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); } } catch (e) { lock = null; }
+  }
+  function wakeOff() { clearTimeout(idleTm); lastSet = 0; try { if (lock) lock.release(); } catch (e) { /* já solto */ } lock = null; }
+  // O sistema solta a trava quando o app vai para segundo plano: pega de novo ao voltar, se o treino estiver em andamento.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && lastSet && Date.now() - lastSet < IDLE_MS) wakeOn(true); });
+  window.CGWake = { on: () => wakeOn(false), off: wakeOff, active: () => !!lastSet };
+
   window.CGTimer = { start, stop, left: () => (end ? Math.max(0, Math.round((end - Date.now()) / 1000)) : null) };
 })();
