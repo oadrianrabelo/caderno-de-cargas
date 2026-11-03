@@ -27,6 +27,18 @@
   list.addEventListener('input', refresh);
   refresh();
 
+  // App vazio (instalou de novo?): oferece importar o backup logo no topo.
+  const fresh = document.createElement('div'); fresh.className = 'note'; fresh.id = 'freshnote';
+  fresh.textContent = 'Reinstalou o app? Importe o seu backup para recuperar os treinos. ';
+  const fb = document.createElement('button'); fb.type = 'button'; fb.className = 'btn pri'; fb.textContent = 'Importar backup'; fb.style.marginTop = '8px';
+  fb.addEventListener('click', () => document.getElementById('fimp').click());
+  fresh.append(document.createElement('br'), fb);
+  rep.before(fresh);
+  const showFresh = () => { fresh.hidden = !app.isEmpty(); };
+  app.saved.push(showFresh);
+  new MutationObserver(showFresh).observe(list, { childList: true });
+  showFresh();
+
   // Planilha CSV com todas as séries registradas (abre no Excel e no Google Sheets).
   const csv = document.createElement('button'); csv.type = 'button'; csv.className = 'btn'; csv.id = 'bcsv'; csv.textContent = 'Exportar planilha';
   csv.addEventListener('click', () => {

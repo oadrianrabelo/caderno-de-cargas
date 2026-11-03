@@ -64,3 +64,16 @@ test('pacote web: inclui todos os arquivos de www e grava version.json', () => {
     fs.rmSync(out, { recursive: true, force: true });
   }
 });
+
+test('lembrete: agenda uma notificação semanal por dia escolhido', () => {
+  const { plan } = require('../www/reminder.js');
+  const n = plan({ on: true, time: '07:30', days: [6, 0, 4] }, 'Hoje: Upper');
+  // Dias do app: 0 = segunda ... 6 = domingo. Plugin: 1 = domingo ... 7 = sábado.
+  assert.deepEqual(n.map((x) => x.schedule.on), [{ weekday: 2, hour: 7, minute: 30 }, { weekday: 6, hour: 7, minute: 30 }, { weekday: 1, hour: 7, minute: 30 }]);
+  assert.deepEqual(n.map((x) => x.id), [7100, 7104, 7106]);
+  assert.equal(n[0].body, 'Hoje: Upper');
+  assert.equal(n[0].schedule.allowWhileIdle, true);
+  assert.deepEqual(plan({ on: false, time: '07:30', days: [0] }), []);
+  assert.deepEqual(plan({ on: true, time: 'xx', days: [0] }), []);
+  assert.deepEqual(plan({ on: true, time: '18:00', days: [] }), []);
+});

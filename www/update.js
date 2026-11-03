@@ -131,7 +131,12 @@
     st.checked = Date.now(); store(st);
     const remote = parseRelease(got.rel), what = decide(cur, remote, info.bad);
     if (what === 'apk') {
-      banner('Nova versão ' + remote.version + ' do app. Esta precisa instalar o APK: antes, toque em "Exportar backup" para guardar seus dados.', remote.apk ? 'Baixar APK' : null, null, remote.apk);
+      banner('Nova versão ' + remote.version + ' do app, que precisa instalar o APK. Se o Android pedir para desinstalar o app antigo, ' +
+        'os dados serão apagados: exporte o backup antes e importe depois de instalar.', remote.apk ? 'Baixar APK' : null, null, remote.apk);
+      const n = document.getElementById('updnote'), ex = document.createElement('button');
+      ex.type = 'button'; ex.className = 'btn'; ex.textContent = '1. Exportar backup'; ex.style.margin = '8px 8px 0 0';
+      ex.addEventListener('click', () => { const b = document.getElementById('bexp'); if (b) b.click(); });
+      const a = n.querySelector('a'); if (a) { a.textContent = '2. Baixar APK'; n.insertBefore(ex, a); }
     } else if (what === 'web') {
       const ready = await download(remote, st).catch(() => null);
       if (!ready) return 'Não consegui baixar a versão ' + remote.version;

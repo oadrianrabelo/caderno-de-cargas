@@ -426,6 +426,10 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p2.goto(url);
       await p2.waitForSelector('#updnote >> text=Baixar APK', { timeout: 10000 });
       assert.equal(await p2.getAttribute('#updnote a', 'href'), 'https://dl/app.apk');
+      // Aviso de APK: exportar o backup antes, num toque.
+      assert.equal(await p2.textContent('#updnote a'), '2. Baixar APK');
+      await p2.click('#updnote >> text=1. Exportar backup');
+      await p2.waitForFunction(() => window.__shared && window.__shared.length === 1);
       assert.deepEqual(await p2.evaluate(() => window.__http), []);
       await ctx2.close();
     });
@@ -835,6 +839,50 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.match(lines[2], /;2;Upper;45° Incline DB Press;valida;1;26,5;6;sim;;$/);
       assert.match(lines[4], /;2;Upper;45° Incline DB Press;valida;3;26,5;6;não;;$/);
       await ctx.close();
+    });
+
+    await t.test('lembrete de treino e convite para importar no app vazio', async () => {
+      const LN = `
+        window.__ln = { scheduled: [], cancelled: 0, channel: null, perm: 'prompt' };
+        window.Capacitor.Plugins.LocalNotifications = {
+          checkPermissions: async () => ({ display: window.__ln.perm }),
+          requestPermissions: async () => { window.__ln.perm = 'granted'; return { display: 'granted' }; },
+          createChannel: async (c) => { window.__ln.channel = c; },
+          cancel: async () => { window.__ln.cancelled++; window.__ln.scheduled = []; },
+          schedule: async (o) => { window.__ln.scheduled = o.notifications; }
+        };`;
+      const ctx = await browser.newContext(); await ctx.addInitScript(FAKE_CAP); await ctx.addInitScript(LN);
+      const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      // App vazio: convite para importar; some quando há dados.
+      assert.ok(await p.isVisible('#freshnote >> text=Importar backup'));
+      await fill(p, '50', '8');
+      await p.waitForFunction(() => document.getElementById('freshnote').hidden);
+      await tool(p, '#breminder');
+      await p.click('.tipbox [aria-label="Ligar lembrete"]');
+      await p.fill('.tipbox input[type=time]', '07:15');
+      await p.click('.tipbox .have >> text=sex'); // tira sexta
+      await p.click('.tipbox .have >> text=sáb'); // põe sábado
+      await p.click('.tipbox >> text=Salvar');
+      await p.waitForSelector('#remst >> text=Lembrete ativo: seg, ter, qua, qui, sáb às 07:15');
+      const n = await p.evaluate(() => window.__ln);
+      assert.equal(n.perm, 'granted');
+      assert.equal(n.channel.id, 'treino');
+      assert.deepEqual(n.scheduled.map((x) => x.schedule.on.weekday), [2, 3, 4, 5, 7]);
+      assert.equal(n.scheduled[0].body, 'Hoje: Lower · semana 1. Bora!');
+      // Desligar cancela.
+      await p.click('.tipbox [aria-label="Ligar lembrete"]');
+      await p.click('.tipbox >> text=Salvar');
+      await p.waitForSelector('#remst >> text=Lembrete desligado');
+      assert.deepEqual(await p.evaluate(() => window.__ln.scheduled), []);
+      await p.click('.tipbox >> text=Fechar');
+      await ctx.close();
+      // No navegador o painel avisa que é só no app.
+      const ctx2 = await browser.newContext(); const p2 = await ctx2.newPage(); watch(p2);
+      await p2.goto(url);
+      await tool(p2, '#breminder');
+      await p2.waitForSelector('.tipbox >> text=só funciona no app instalado');
+      await ctx2.close();
     });
 
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));

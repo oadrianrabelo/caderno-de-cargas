@@ -8,7 +8,7 @@
     '@keyframes cgmore{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}.more:not([hidden]){animation:cgmore .18s ease-out}' +
     '@media (prefers-reduced-motion: reduce){.more:not([hidden]){animation:none}}';
   document.head.appendChild(css);
-  const IDS = ['bplates', 'bprogs', 'bexp', 'bimp', 'bcsv', 'bcloud', 'btheme', 'bgloss', 'bnews', 'bver'];
+  const IDS = ['breminder', 'bplates', 'bprogs', 'bexp', 'bimp', 'bcsv', 'bcloud', 'btheme', 'bgloss', 'bnews', 'bver'];
   const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn'; btn.id = 'bmore';
   btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'more');
   const box = document.createElement('div'); box.className = 'more'; box.id = 'more'; box.hidden = true;

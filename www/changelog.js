@@ -1,5 +1,10 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.3.0', date: '2026-11-03', items: [
+    'Lembrete de treino: notificação nos dias e no horário que você escolher, com o próximo treino (Mais ▾ → Lembrete de treino).',
+    'Esta versão precisa instalar o APK. O aviso tem "1. Exportar backup" e "2. Baixar APK", e um app reinstalado e vazio oferece "Importar backup".',
+    'Daqui para frente os APKs saem com a mesma assinatura, para instalar por cima sem desinstalar.'
+  ] },
   { version: 'v0.2.9', date: '2026-11-03', items: [
     'Gráfico de volume por semana no Progresso, com a semana atual destacada.',
     'Substituição lembrada: se você trocou o exercício pela alternativa, ela já vem escolhida nas próximas semanas.',

@@ -2,6 +2,12 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.3.0 (2026-11-03)
+
+- Lembrete de treino: notificação nos dias e no horário que você escolher, com o próximo treino (Mais ▾ → Lembrete de treino).
+- Esta versão precisa instalar o APK. O aviso tem "1. Exportar backup" e "2. Baixar APK", e um app reinstalado e vazio oferece "Importar backup".
+- Daqui para frente os APKs saem com a mesma assinatura, para instalar por cima sem desinstalar.
+
 ## v0.2.9 (2026-11-03)
 
 - Gráfico de volume por semana no Progresso, com a semana atual destacada.
