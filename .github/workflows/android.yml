@@ -44,13 +44,21 @@ jobs:
       # Cache das dependências e do wrapper do Gradle.
       - uses: gradle/actions/setup-gradle@v4
 
-      # Sem keystore nos secrets, o APK sai assinado com a chave debug. Guardá-la em cache mantém a
-      # mesma assinatura entre builds (best effort: o GitHub apaga caches sem uso por 7 dias).
+      # Sem keystore nos secrets, o APK sai assinado com uma chave debug própria, gerada uma vez e guardada em
+      # cache, para manter a mesma assinatura entre builds (best effort: o GitHub apaga caches sem uso por 7 dias).
       - name: Chave debug estável
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: android-debug-keystore-v1
+          path: ~/caderno-debug.keystore
+          key: caderno-debug-keystore-v2
+
+      - name: Gera a chave debug se não veio do cache
+        run: |
+          if [ ! -f "$HOME/caderno-debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/caderno-debug.keystore" -storepass android -keypass android \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Caderno de Cargas Debug,O=Android,C=BR"
+          fi
+          echo "DEBUG_KEYSTORE_PATH=$HOME/caderno-debug.keystore" >> "$GITHUB_ENV"
 
       # A keystore só existe nos secrets do repositório. Sem ela, o CI gera um APK debug.
       - name: Prepara assinatura e versão
