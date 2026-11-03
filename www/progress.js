@@ -330,7 +330,9 @@
     }, 'image/png');
   }
 
-  window.CGProgress = { workoutCard: () => workoutCard(app.view()), progressCard: () => { const v = app.view(); return progressCard(v, CG.summarize(v.logs, v.ORDER, v.WEEKS), CG.exerciseProgress(v.logs)); } };
+  window.CGProgress = {
+    shareWorkout: () => share(workoutCard(app.view()), 'treino-' + CG.isoDay(Date.now()) + '.png'),
+    workoutCard: () => workoutCard(app.view()), progressCard: () => { const v = app.view(); return progressCard(v, CG.summarize(v.logs, v.ORDER, v.WEEKS), CG.exerciseProgress(v.logs)); } };
 
   btn.addEventListener('click', () => { panel.hidden = !panel.hidden; if (!panel.hidden) draw(); });
   app.saved.push(() => { if (!panel.hidden) draw(); });

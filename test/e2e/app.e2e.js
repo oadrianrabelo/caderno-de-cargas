@@ -587,6 +587,44 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
+    await t.test('cores por dia, exercício completo, rolar para o próximo e comemoração', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      const dayColor = () => p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--day').trim());
+      assert.equal(await dayColor(), '#1f4fd8');
+      await p.click('.tab >> nth=1');
+      assert.equal(await dayColor(), '#d9480f');
+      // Lower da semana 1: completar o 1º exercício marca o selo; completar tudo comemora.
+      const cards = p.locator('.ex');
+      const n = await cards.count();
+      for (let c = 0; c < n; c++) {
+        const sets = cards.nth(c).locator('.set:not(.warm)');
+        const k = await sets.count();
+        for (let i = 0; i < k; i++) {
+          await sets.nth(i).locator('input').nth(0).fill('10'); await sets.nth(i).locator('input').nth(1).fill('8');
+          await sets.nth(i).locator('.ck').click();
+        }
+        if (c === 0) {
+          assert.ok(await cards.nth(0).evaluate((e) => e.classList.contains('complete')));
+          assert.equal(await p.isVisible('#cele'), false);
+        }
+      }
+      await p.waitForSelector('#cele >> text=Treino concluído!');
+      assert.match(await p.textContent('#cele p'), /Lower · semana 1 · 12 séries · 960 kg de volume/);
+      await p.click('#cele >> text=Fechar');
+      assert.equal(await p.isVisible('#cele'), false);
+      // Desmarcar e marcar de novo não comemora outra vez.
+      const last = cards.nth(n - 1).locator('.set:not(.warm) .ck').last();
+      await last.click(); await last.click();
+      await p.waitForTimeout(100);
+      assert.equal(await p.locator('#cele').count(), 0);
+      // Recarregando, os selos de completo voltam.
+      await p.reload();
+      await p.click('.tab >> nth=1');
+      assert.equal(await p.locator('.ex.complete').count(), n);
+      await ctx.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {

@@ -29,12 +29,14 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(-
 .week .wl { min-width: 96px; text-align: center; font: 700 22px/1 var(--f-display); letter-spacing: .04em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
 .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
 .tab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
-@media (max-width: 400px) { .tab { font-size: 16px; letter-spacing: .03em; } }
 .tabs.small .tab { font-size: 14px; letter-spacing: .02em; }
 .tab .dot.skip { background: var(--mute); }
 .note { margin: 0 0 12px; padding: 10px 12px; border: 1px dashed var(--line); color: var(--mute); border-radius: 8px; font-size: 14px; }
 .tab { position: relative; height: 46px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; font: 700 18px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
 .tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+/* Abas estreitas no celular: a fonte acompanha a largura da tela. */
+.tab { padding: 0 2px; font-size: clamp(12px, 3.9vw, 18px); letter-spacing: .02em; }
+@media (min-width: 480px) { .tab { letter-spacing: .06em; } }
 .tab .dot { position: absolute; top: 5px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--done); }
 .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 18px 0 10px; }
 .head h1 { margin: 0; font: 700 30px/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; }
@@ -617,6 +619,7 @@ try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {
 <script src="sync.js"></script>
 <script src="progress.js"></script>
 <script src="programs.js"></script>
+<script src="fx.js"></script>
 <script src="update.js"></script>
 </body>
 </html>
