@@ -22,6 +22,8 @@ num WebView local. É HTML, CSS e JavaScript puros: sem framework, sem bundler, 
 - **Backup** em arquivo e **nuvem** opcional (abaixo).
 - **Atualização automática** (abaixo).
 
+As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md) e no próprio app, em **Mais ▾ → Novidades**.
+
 ## Instalar no celular
 
 1. Abra a página [Releases](../../releases) no celular e baixe o `.apk` mais recente.
@@ -92,6 +94,8 @@ Para publicar uma Release (é dela que vem a atualização automática), use um 
 
 - **Pelo celular**: no GitHub, *Actions → Android → Run workflow*, preencha a versão (ex.: `v0.3.0`) e confirme.
 - **Pelo terminal**: `git tag v0.3.0 && git push origin v0.3.0`.
+
+Antes de publicar, acrescente a versão no topo de `www/changelog.js` e rode `npm run changelog` (um teste confere que o `CHANGELOG.md` está em dia).
 
 A Release recebe o APK e o pacote `web-<build>-<nativo>.json`, que é o que os apps instalados baixam.
 
