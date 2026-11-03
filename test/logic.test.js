@@ -275,3 +275,25 @@ test('progressHint: sugere subir a carga só se todas as séries bateram o topo 
   assert.equal(CG.progressHint({ 0: s('60', '8') }, 1, ''), null);
   assert.deepEqual(CG.progressHint({ 0: s('20', '20') }, 1, '10-20'), { top: 20, kg: 20 });
 });
+
+test('e1rm: estimativa de Epley', () => {
+  assert.equal(CG.e1rm('100', '10'), 133.3);
+  assert.equal(CG.e1rm('60', '1'), 60);
+  assert.equal(CG.e1rm('62,5', '8'), 79.2);
+  assert.equal(CG.e1rm('', '8'), 0);
+});
+
+test('exerciseHistory: sessões do exercício, mais recente primeiro, com séries em ordem', () => {
+  const logs = {
+    '1-upper': log(1, 'upper', 100, { o0: { used: 'Supino', sets: { 1: set('60', '7'), 0: set('60', '8') } } }),
+    '2-upper': log(2, 'upper', 300, { o0: { used: 'Supino', sets: { 0: set('62.5', '8', false) } } }),
+    '1-push': log(1, 'push', 200, { o0: { used: 'Outro', sets: { 0: set('10', '10') } } }),
+    '3-upper': log(3, 'upper', 400, { o0: { used: 'Supino', sets: {} } }),
+  };
+  const h = CG.exerciseHistory(logs, 'Supino');
+  assert.deepEqual(h.map((x) => x.week), [2, 1]);
+  assert.deepEqual(h[1].sets, [{ kg: '60', reps: '8', done: true }, { kg: '60', reps: '7', done: true }]);
+  assert.equal(h[1].best, 76);
+  assert.equal(h[0].sets[0].done, false);
+  assert.deepEqual(CG.exerciseHistory(logs, 'Nada'), []);
+});

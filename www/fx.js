@@ -19,6 +19,9 @@
     '.ex.complete{border-color:var(--done);box-shadow:0 0 0 1px var(--done) inset}' +
     '.ex.complete .idx{background:var(--done);color:#fff}' +
     '.ex{scroll-margin-top:150px}' +
+    '.ex.collapsed .swap,.ex.collapsed .det,.ex.collapsed .sets,.ex.collapsed .meta{display:none}' +
+    '.ex.complete .exh{cursor:pointer}.ex .sum{display:none;margin-top:3px;color:var(--done);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}' +
+    '.ex.collapsed .sum{display:block}.ex.collapsed{padding-bottom:12px}' +
     '.ck{transition:background-color .2s,border-color .2s,color .2s,transform .15s}.ck:active{transform:scale(.92)}' +
     '@keyframes cgpop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}' +
     '.set.pop .ck{animation:cgpop .32s ease-out}' +
@@ -45,7 +48,37 @@
 
   // Exercício completo: todas as séries válidas marcadas.
   const cardDone = (card) => { const s = card.querySelectorAll('.set:not(.warm)'); return s.length > 0 && [...s].every((r) => r.classList.contains('done')); };
-  const markCards = () => list.querySelectorAll('.ex').forEach((c) => c.classList.toggle('complete', cardDone(c)));
+  // Exercícios completos ficam recolhidos (uma linha com o resumo); tocar no cabeçalho abre de novo.
+  const opened = new Set();
+  const cardKey = (c) => { const v = app.view(); return v.week + '-' + v.day + '-' + [...list.querySelectorAll('.ex')].indexOf(c); };
+  function summary(c) {
+    const rows = [...c.querySelectorAll('.set:not(.warm)')];
+    let best = null;
+    rows.forEach((r) => {
+      const [k, rp] = r.querySelectorAll('input');
+      const kgv = parseFloat(String(k.value).replace(',', '.')) || 0, rv = parseFloat(rp.value) || 0;
+      if (!best || kgv > best.kg || (kgv === best.kg && rv > best.reps)) best = { kg: kgv, reps: rv, k: k.value, r: rp.value };
+    });
+    return '✓ ' + rows.length + (rows.length === 1 ? ' série' : ' séries') + (best && (best.k || best.r) ? ' · melhor ' + String(best.k || '—').replace('.', ',') + ' kg × ' + (best.r || '—') : '');
+  }
+  function markCards() {
+    list.querySelectorAll('.ex').forEach((c) => {
+      const done = cardDone(c);
+      c.classList.toggle('complete', done);
+      if (!done) { c.classList.remove('collapsed'); return; }
+      let sm = c.querySelector('.sum');
+      if (!sm) { sm = document.createElement('div'); sm.className = 'sum'; const n = c.querySelector('.exn'); if (n) n.appendChild(sm); }
+      sm.textContent = summary(c);
+      c.classList.toggle('collapsed', !opened.has(cardKey(c)));
+    });
+  }
+  list.addEventListener('click', (e) => {
+    const h = e.target.closest('.ex.complete .exh');
+    if (!h || e.target.closest('button')) return;
+    const c = h.closest('.ex'), k = cardKey(c);
+    if (c.classList.contains('collapsed')) opened.add(k); else opened.delete(k);
+    c.classList.toggle('collapsed');
+  });
 
   function dayStats() {
     const v = app.view(), doc = v.doc || { ex: {} };

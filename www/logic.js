@@ -155,6 +155,31 @@
       .sort((a, b) => b.points[b.points.length - 1].t - a.points[a.points.length - 1].t);
   }
 
+  // 1RM estimado (Epley): carga × (1 + reps/30). Só para comparar a evolução, não é um teste de máximo.
+  function e1rm(kg, reps) {
+    const k = num(kg), r = num(reps);
+    if (!k || !r) return 0;
+    return r === 1 ? k : Math.round(k * (1 + r / 30) * 10) / 10;
+  }
+
+  // Histórico de um exercício (pelo nome usado): sessões da mais recente para a mais antiga.
+  function exerciseHistory(logs, name) {
+    const out = [];
+    for (const k in logs) {
+      const l = logs[k];
+      if (!l || !l.ex) continue;
+      for (const id in l.ex) {
+        const x = l.ex[id];
+        if (!x || x.used !== name) continue;
+        const sets = Object.keys(x.sets || {}).sort((a, b) => a - b).map((i) => x.sets[i]).filter((s) => s && (s.kg || s.reps))
+          .map((s) => ({ kg: s.kg, reps: s.reps, done: !!s.done }));
+        if (!sets.length) continue;
+        out.push({ t: l.t || 0, week: l.week, day: l.day, sets, best: Math.max(...sets.map((s) => e1rm(s.kg, s.reps))) });
+      }
+    }
+    return out.sort((a, b) => b.t - a.t);
+  }
+
   // Programa próprio: dias com nome e uma lista de exercícios que vale para todas as semanas.
   function newId(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function makeProgram(name, weeks, dayNames, template) {
@@ -192,7 +217,7 @@
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

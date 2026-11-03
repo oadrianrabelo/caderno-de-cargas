@@ -40,6 +40,8 @@ const FAKE_CAP = `
   window.__fs = fsStore;`;
 
 const skip = chromium ? false : 'Playwright não instalado';
+// Botões que ficam dentro do menu "Mais": abre o menu se precisar.
+const tool = async (pg, sel) => { if (!(await pg.isVisible(sel))) await pg.click('#bmore'); return pg.click(sel); };
 
 test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, async (t) => {
   const srv = await serve();
@@ -72,7 +74,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       const ctx = await browser.newContext({ acceptDownloads: true }); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
       await fill(p, '42.5', '10');
-      const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#bexp')]);
+      const [dl] = await Promise.all([p.waitForEvent('download'), tool(p, '#bexp')]);
       assert.match(dl.suggestedFilename(), /^caderno-de-cargas-\d{4}-\d{2}-\d{2}\.json$/);
       const file = path.join(os.tmpdir(), 'cg-e2e-' + process.pid + '.json');
       await dl.saveAs(file);
@@ -131,7 +133,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.addInitScript(() => { if (sessionStorage.getItem('wipe')) { sessionStorage.removeItem('wipe'); localStorage.clear(); } }); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
       await fill(p, '55', '9');
-      await p.click('#bexp');
+      await tool(p, '#bexp');
       await p.waitForFunction(() => document.getElementById('status').textContent === 'Backup exportado');
       const shared = await p.evaluate(() => window.__shared);
       assert.equal(shared.length, 1);
@@ -160,7 +162,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       };
       const ctx = await browser.newContext(); await ctx.route('https://api.github.com/**', route); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      await p.click('#bcloud');
+      await tool(p, '#bcloud');
       await p.fill('#cloud input[type=password]', 'errado');
       await p.click('#cloud >> text=Conectar Gist');
       await p.waitForSelector('#cloud >> text=Token inválido ou expirado');
@@ -177,7 +179,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
 
       const ctx2 = await browser.newContext(); await ctx2.route('https://api.github.com/**', route); const p2 = await ctx2.newPage(); watch(p2);
       await p2.goto(url);
-      await p2.click('#bcloud');
+      await tool(p2, '#bcloud');
       await p2.fill('#cloud input[type=password]', 'tok');
       await p2.click('#cloud >> text=Conectar Gist');
       await p2.waitForSelector('#cloud >> text=Achei um backup no GitHub Gist', { timeout: 5000 });
@@ -196,7 +198,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.route('https://api.github.com/**', (r) => r.abort('internetdisconnected'));
       await p.reload();
       await fill(p, '20', '12');
-      await p.click('#bcloud');
+      await tool(p, '#bcloud');
       await p.waitForSelector('#cloud >> text=Sem internet: envio quando voltar o sinal', { timeout: 10000 });
       assert.equal(await p.textContent('#bcloud'), 'Nuvem •');
       await p.reload();
@@ -207,7 +209,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
 
     await t.test('Google Drive: navegador mostra que é só no app; no app conecta, envia e baixa', async () => {
       const ctx0 = await browser.newContext(); const p0 = await ctx0.newPage(); watch(p0);
-      await p0.goto(url); await p0.click('#bcloud');
+      await p0.goto(url); await tool(p0, '#bcloud');
       await p0.waitForSelector('#cloud >> text=Google Drive: disponível no app Android.');
       assert.equal(await p0.locator('#cloud >> text=Conectar Google Drive').count(), 0);
       await ctx0.close();
@@ -227,7 +229,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       const ctx = await browser.newContext(); await ctx.addInitScript(FAKE_CAP); await ctx.addInitScript(DRIVE); await ctx.route('https://www.googleapis.com/**', route);
       const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      await p.click('#bcloud');
+      await tool(p, '#bcloud');
       await p.click('#cloud >> text=Conectar Google Drive');
       await p.waitForSelector('#cloud >> text=Google Drive ·');
       assert.equal(await p.evaluate(() => window.__logins), 1);
@@ -239,7 +241,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       const ctx2 = await browser.newContext(); await ctx2.addInitScript(FAKE_CAP); await ctx2.addInitScript(DRIVE); await ctx2.route('https://www.googleapis.com/**', route);
       const p2 = await ctx2.newPage(); watch(p2);
       await p2.goto(url);
-      await p2.click('#bcloud');
+      await tool(p2, '#bcloud');
       await p2.click('#cloud >> text=Conectar Google Drive');
       await p2.waitForSelector('#cloud >> text=Achei um backup no Google Drive', { timeout: 5000 });
       await p2.click('#cloud >> text=Baixar da nuvem');
@@ -282,7 +284,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
     await t.test('programa próprio: criar, montar o dia, treinar, trocar, editar e excluir', async () => {
       const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      await p.click('#bprogs');
+      await tool(p, '#bprogs');
       await p.click('#programs >> text=+ Criar meu programa');
       await p.fill('#programs input >> nth=0', 'Meu AB');
       await p.fill('#programs input >> nth=1', '4');
@@ -306,7 +308,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.equal(await p.textContent('#title'), 'Treino B');
       assert.equal(await p.textContent('#sub'), 'Meu AB');
 
-      await p.click('#bprogs');
+      await tool(p, '#bprogs');
       await p.click('#programs .it >> nth=1 >> text=Editar dias');
       await p.fill('#programs [aria-label="Nome do dia 2"]', 'Costas');
       await p.click('#programs >> text=Salvar');
@@ -314,7 +316,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.click('#programs .it >> nth=0 >> text=Usar');
       assert.equal(await p.locator('.tab').count(), 5);
       assert.equal(await p.textContent('#title'), 'Upper');
-      await p.click('#bprogs');
+      await tool(p, '#bprogs');
       await p.click('#programs .it >> nth=1 >> text=Excluir');
       await p.click('#programs .it >> nth=1 >> text=Toque de novo para excluir');
       assert.equal(await p.locator('#programs .it').count(), 1);
@@ -324,14 +326,14 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
     await t.test('programa a partir do Jeff copia os exercícios e vai no backup', async () => {
       const ctx = await browser.newContext({ acceptDownloads: true }); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      await p.click('#bprogs');
+      await tool(p, '#bprogs');
       await p.click('#programs >> text=+ Criar meu programa');
       await p.click('#programs >> text=Partir do treino do Jeff');
       await p.click('#programs >> text=Criar e usar');
       assert.equal(await p.textContent('#sub'), 'Meu Jeff');
       assert.equal(await p.textContent('.ex h2 >> nth=0'), '45° Incline Barbell Press');
       await fill(p, '30', '10');
-      const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#bexp')]);
+      const [dl] = await Promise.all([p.waitForEvent('download'), tool(p, '#bexp')]);
       const file = path.join(os.tmpdir(), 'cg-e2e-prog-' + process.pid + '.json');
       await dl.saveAs(file);
       assert.equal(Object.values(JSON.parse(fs.readFileSync(file, 'utf8')).programs.list)[0].name, 'Meu Jeff');
@@ -452,7 +454,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.click('.ex >> nth=0 >> .tag.tec');
       assert.equal(await p.textContent('.tipbox h2'), 'Myo-reps');
       await p.click('.tipbox >> text=Entendi');
-      await p.click('#bgloss');
+      await tool(p, '#bgloss');
       assert.ok((await p.locator('.tipbox h3').allTextContents()).includes('LLPs (parciais alongadas)'));
       await p.click('.tipbox >> text=Entendi');
       await p.reload();
@@ -494,7 +496,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       });
       const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      await p.click('#bver');
+      await tool(p, '#bver');
       await p.waitForSelector('#version >> text=Instalada: v0.5.0 (build 5)');
       await p.click('#version >> text=Verificar atualização agora');
       await p.waitForSelector('#version >> text=Repositório privado: cole um token de leitura');
@@ -614,6 +616,8 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.click('#cele >> text=Fechar');
       assert.equal(await p.isVisible('#cele'), false);
       // Desmarcar e marcar de novo não comemora outra vez.
+      assert.ok(await cards.nth(n - 1).evaluate((e) => e.classList.contains('collapsed')));
+      await cards.nth(n - 1).locator('.exh').click();
       const last = cards.nth(n - 1).locator('.set:not(.warm) .ck').last();
       await last.click(); await last.click();
       await p.waitForTimeout(100);
@@ -622,6 +626,48 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.reload();
       await p.click('.tab >> nth=1');
       assert.equal(await p.locator('.ex.complete').count(), n);
+      await ctx.close();
+    });
+
+    await t.test('menu Mais, exercício recolhido e histórico do exercício', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      // Menu: só Editar, Pular, Progresso à vista; o resto abre no "Mais".
+      assert.equal(await p.isVisible('#bexp'), false);
+      assert.equal(await p.textContent('#bmore'), 'Mais ▾');
+      await p.click('#bmore');
+      assert.ok(await p.isVisible('#bexp'));
+      assert.equal(await p.textContent('#bmore'), 'Menos ▴');
+      await p.click('#bmore');
+      // Duas sessões do supino (semanas 1 e 2) para o histórico.
+      const ex0 = () => p.locator('.ex >> nth=0');
+      for (const [kg, reps] of [['60', '8'], ['60', '7']]) {
+        const r = ex0().locator('.set:not(.warm)').nth(kg === '60' && reps === '8' ? 0 : 1);
+        await r.locator('input').nth(0).fill(kg); await r.locator('input').nth(1).fill(reps); await r.locator('.ck').click();
+      }
+      assert.ok(await ex0().evaluate((e) => e.classList.contains('collapsed')));
+      assert.equal(await ex0().locator('.sum').textContent(), '✓ 2 séries · melhor 60 kg × 8');
+      assert.equal(await ex0().locator('.sets').isVisible(), false);
+      await ex0().locator('.exh').click();
+      assert.ok(await ex0().locator('.sets').isVisible());
+      await ex0().locator('.exh').click();
+      assert.equal(await ex0().locator('.sets').isVisible(), false);
+      await p.click('#wnext');
+      const r2 = ex0().locator('.set:not(.warm)').nth(0);
+      await r2.locator('input').nth(0).fill('65'); await r2.locator('input').nth(1).fill('8'); await r2.locator('.ck').click();
+      // Histórico pelo botão 📈.
+      await ex0().locator('.hbtn').click();
+      assert.equal(await p.textContent('.tipbox h2'), '45° Incline Barbell Press');
+      assert.equal(await p.locator('.hist li').count(), 2);
+      assert.match(await p.textContent('.hist li >> nth=0'), /semana 2 · Upper · 1RM est\. 82,3 kg/);
+      assert.deepEqual(await p.locator('.hist li >> nth=1 >> .ss span').allTextContents(), ['60 × 8', '60 × 7']);
+      assert.deepEqual(await p.locator('.hist .hk b').allTextContents(), ['2', '82,3 kg', '+6,3 kg']);
+      assert.equal(await p.locator('.hist svg').count(), 1);
+      await p.click('.tipbox >> text=Fechar');
+      // Também abre pelo painel de Progresso.
+      await p.click('#bprog');
+      await p.click('#progress .exr >> nth=0');
+      assert.equal(await p.textContent('.tipbox h2'), '45° Incline Barbell Press');
       await ctx.close();
     });
 
