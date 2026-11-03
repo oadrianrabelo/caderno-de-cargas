@@ -138,7 +138,8 @@
     const big = document.createElement('div'); big.className = 'big'; big.textContent = '🏆';
     const h = document.createElement('h2'); h.textContent = 'Treino concluído!';
     const p = document.createElement('p');
-    p.textContent = st.name + ' · semana ' + st.week + ' · ' + st.done + ' séries' + (st.vol ? ' · ' + Math.round(st.vol).toLocaleString('pt-BR') + ' kg de volume' : '');
+    const min = CG.sessionDuration(app.view().doc);
+    p.textContent = st.name + ' · semana ' + st.week + ' · ' + st.done + ' séries' + (st.vol ? ' · ' + Math.round(st.vol).toLocaleString('pt-BR') + ' kg de volume' : '') + (min ? ' · ' + min + ' min' : '');
     const r = document.createElement('div'); r.className = 'r';
     const close = () => ov.remove();
     const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'btn pri'; sh.textContent = 'Compartilhar imagem do treino';

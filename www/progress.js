@@ -242,7 +242,8 @@
         y += 26;
       });
       y += 10;
-      return footer(ctx, on, y, done + ' de ' + total + ' séries' + (vol ? ' · ' + Math.round(vol).toLocaleString('pt-BR') + ' kg de volume' : ''));
+      const min = CG.sessionDuration(doc);
+      return footer(ctx, on, y, done + ' de ' + total + ' séries' + (vol ? ' · ' + Math.round(vol).toLocaleString('pt-BR') + ' kg' : '') + (min ? ' · ' + min + ' min' : ''));
     });
   }
 

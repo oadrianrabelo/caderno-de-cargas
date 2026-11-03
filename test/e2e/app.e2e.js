@@ -671,6 +671,68 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
+    await t.test('anotação e energia, duração, recorde, anilhas e modo foco', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      const ex0 = () => p.locator('.ex >> nth=0');
+      const mark = async (card, i, kg, reps) => { const r = card.locator('.set:not(.warm)').nth(i); await r.locator('input').nth(0).fill(kg); await r.locator('input').nth(1).fill(reps); await r.locator('.ck').click(); };
+      // Semana 1: duas séries, com 47 min entre elas (relógio adiantado só entre as marcações).
+      await mark(ex0(), 0, '60', '8');
+      await p.evaluate(() => { const real = Date.now; const off = 47 * 60000; Date.now = () => real() + off; });
+      await mark(ex0(), 1, '60', '7');
+      await p.waitForFunction(() => /Duração: 47 min/.test(document.getElementById('sessdur').textContent));
+      // Energia e anotação ficam no treino e aparecem no histórico.
+      await p.click('#sess [aria-label="Energia 5: Ótimo"]');
+      await p.fill('#sess textarea', 'Dormi bem');
+      await p.waitForFunction(() => document.getElementById('status').textContent === 'Salvo');
+      await p.reload();
+      assert.equal(await p.textContent('#title'), 'Lower'); // treino feito: abre no dia seguinte
+      await p.click('.tab >> nth=0');
+      assert.equal(await p.getAttribute('#sess [aria-label="Energia 5: Ótimo"]', 'aria-pressed'), 'true');
+      assert.equal(await p.inputValue('#sess textarea'), 'Dormi bem');
+      // Semana 2: carga maior que a da semana 1 = recorde (toast e 🏅).
+      await p.click('#wnext');
+      assert.equal(await p.inputValue('#sess textarea'), '');
+      await mark(ex0(), 0, '65', '8');
+      await p.waitForSelector('#toast.on >> text=🏅 Recorde! 45° Incline Barbell Press: 65 kg × 8');
+      assert.ok(await ex0().locator('.set:not(.warm) >> nth=0').evaluate((e) => e.classList.contains('pr')));
+      // Mesma carga com menos reps não é recorde.
+      await mark(ex0(), 1, '60', '6');
+      assert.equal(await ex0().locator('.set:not(.warm) >> nth=1').evaluate((e) => e.classList.contains('pr')), false);
+      await ex0().locator('.hbtn').click();
+      assert.match(await p.locator('.hist li', { hasText: 'semana 1 ·' }).textContent(), /💪 Dormi bem/);
+      await p.click('.tipbox >> text=Fechar');
+      // Anilhas: preenche com a carga do último campo tocado.
+      await ex0().locator('.set:not(.warm) >> nth=0 >> input >> nth=0').focus();
+      await tool(p, '#bplates');
+      assert.equal(await p.inputValue('.pl input[aria-label="Carga total"]'), '65');
+      assert.equal(await p.textContent('.pl .res'), 'Cada lado: 20 + 2,5 kg');
+      await p.fill('.pl input[aria-label="Carga total"]', '100');
+      assert.equal(await p.textContent('.pl .res'), 'Cada lado: 25 + 15 kg');
+      assert.equal(await p.locator('.pl .bar i:not(.rod)').count(), 4);
+      await p.click('.pl .have >> text=15 kg');
+      assert.equal(await p.textContent('.pl .res'), 'Cada lado: 25 + 10 + 5 kg');
+      await p.fill('.pl input[aria-label="Carga total"]', '61');
+      assert.match(await p.textContent('.pl .warn2'), /Faltam 1 kg/);
+      await p.click('.pl >> text=Fechar');
+      // Modo foco: só o exercício atual, avança sozinho ao completar.
+      await p.click('#bfocus');
+      // Na semana 2 o supino tem 3 séries e só 2 foram feitas: o foco começa nele.
+      assert.equal(await p.textContent('#fbar span'), '1 de 7');
+      assert.equal(await p.locator('.ex:visible').count(), 1);
+      assert.equal(await p.isVisible('#bexp'), false);
+      const cur = p.locator('.ex.cur');
+      await mark(cur, 2, '60', '6');
+      await p.waitForFunction(() => document.querySelector('#fbar span').textContent === '2 de 7');
+      await p.click('[aria-label="Exercício anterior"]');
+      assert.equal(await p.textContent('#fbar span'), '1 de 7');
+      assert.ok(await p.locator('.ex.cur .sets').isVisible());
+      await p.click('#bfocus');
+      assert.equal(await p.textContent('#bfocus'), 'Modo foco');
+      assert.equal(await p.locator('.ex:visible').count(), 7);
+      await ctx.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {

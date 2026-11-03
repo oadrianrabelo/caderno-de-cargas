@@ -64,6 +64,7 @@
         const ss = mk('div', 'ss');
         x.sets.forEach((s) => ss.appendChild(mk('span', s.done ? 'ok' : null, kg(s.kg) + ' × ' + (s.reps || '—'))));
         li.appendChild(ss);
+        if (x.energy || x.note) li.appendChild(mk('small', null, (x.energy ? ['😫', '😕', '😐', '🙂', '💪'][x.energy - 1] + ' ' : '') + (x.note || '')));
         ol.appendChild(li);
       });
       box.appendChild(ol);

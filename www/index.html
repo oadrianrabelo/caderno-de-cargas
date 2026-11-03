@@ -209,6 +209,9 @@ const CGApp = window.CGApp = {
   isEmpty: () => !Object.keys(custom).length && !Object.keys(programs.list || {}).length && Object.values(logs).every((l) => !l || !l.t),
   status: (t) => setStatus(t),
   flush: () => flushNow(),
+  // Treino do dia aberto (cria se preciso) e "mexeu no treino" (salva).
+  doc: () => getDoc(),
+  touch: (d) => touch(d),
   // Usados por progress.js e programs.js.
   view: () => ({ logs, week, day, ORDER, NAMES, WEEKS, program: prog ? prog.name : BTS.name, list: getList(), doc: logs[ckey()] || null }),
   bts: () => ({ P, order: BTS.order, names: BTS.names, weeks: BTS.weeks, name: BTS.name }),
@@ -312,7 +315,8 @@ function setRow(ex, i, s, used, last, doc, det) {
       if (!rp.value && lastSet && lastSet.reps) rp.value = lastSet.reps;
     }
     const nd = !now.done;
-    write({ kg: kg.value, reps: rp.value, done: nd });
+    // at: hora em que a série foi marcada (duração do treino).
+    write(nd ? { kg: kg.value, reps: rp.value, done: true, at: Date.now() } : { kg: kg.value, reps: rp.value, done: false });
     // Série feita: começa o descanso do exercício (não na última série do último exercício).
     if (nd && window.CGTimer) CGTimer.start(CG.restSeconds(ex.t), used);
     row.classList.toggle('done', nd);
@@ -621,6 +625,9 @@ try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {
 <script src="programs.js"></script>
 <script src="fx.js"></script>
 <script src="history.js"></script>
+<script src="session.js"></script>
+<script src="plates.js"></script>
+<script src="focus.js"></script>
 <script src="update.js"></script>
 <script src="menu.js"></script>
 </body>
