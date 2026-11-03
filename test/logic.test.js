@@ -294,6 +294,39 @@ test('exerciseHistory: sessões do exercício, mais recente primeiro, com série
   assert.deepEqual(h.map((x) => x.week), [2, 1]);
   assert.deepEqual(h[1].sets, [{ kg: '60', reps: '8', done: true }, { kg: '60', reps: '7', done: true }]);
   assert.equal(h[1].best, 76);
+  assert.equal(h[1].note, '');
   assert.equal(h[0].sets[0].done, false);
   assert.deepEqual(CG.exerciseHistory(logs, 'Nada'), []);
+});
+
+test('sessionDuration: da primeira à última série marcada', () => {
+  const at = (m) => 1000000 + m * 60000;
+  const doc = { ex: { a: { sets: { 0: { done: true, at: at(0) }, 1: { done: true, at: at(12) } } }, b: { sets: { 0: { done: true, at: at(47) }, 1: { done: false, at: at(90) } } } } };
+  assert.equal(CG.sessionDuration(doc), 47);
+  assert.equal(CG.sessionDuration({ ex: { a: { sets: { 0: { done: true, at: at(0) } } } } }), null);
+  assert.equal(CG.sessionDuration(null), null);
+});
+
+test('isRecord: supera carga ou 1RM das outras sessões; primeira vez não conta', () => {
+  const logs = {
+    '1-upper': log(1, 'upper', 100, { o0: { used: 'Supino', sets: { 0: set('60', '8'), 1: set('70', '2', false) } } }),
+    '2-upper': log(2, 'upper', 200, { o0: { used: 'Supino', sets: {} } }),
+  };
+  assert.deepEqual(CG.isRecord(logs, 'Supino', '2-upper', '62.5', '8'), { kg: true, e1rm: true });
+  assert.deepEqual(CG.isRecord(logs, 'Supino', '2-upper', '60', '10'), { kg: false, e1rm: true });
+  assert.equal(CG.isRecord(logs, 'Supino', '2-upper', '60', '8'), null);
+  assert.equal(CG.isRecord(logs, 'Supino', '2-upper', '50', '8'), null);
+  // Série não feita da outra sessão não conta como marca anterior.
+  assert.equal(CG.isRecord(logs, 'Outro', '2-upper', '100', '5'), null);
+  assert.equal(CG.isRecord({}, 'Supino', 'x', '60', '8'), null);
+});
+
+test('plates: anilhas por lado', () => {
+  const P = [25, 20, 15, 10, 5, 2.5, 1.25];
+  assert.deepEqual(CG.plates(100, 20, P), { side: [25, 15], rest: 0, ok: true });
+  assert.deepEqual(CG.plates(62.5, 20, P), { side: [20, 1.25], rest: 0, ok: true });
+  assert.deepEqual(CG.plates(61, 20, P), { side: [20], rest: 0.5, ok: false });
+  assert.deepEqual(CG.plates(20, 20, P), { side: [], rest: 0, ok: true });
+  assert.deepEqual(CG.plates(15, 20, P).ok, false);
+  assert.deepEqual(CG.plates(60, 20, [10, 5]), { side: [10, 10], rest: 0, ok: true });
 });

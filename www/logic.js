@@ -174,10 +174,48 @@
         const sets = Object.keys(x.sets || {}).sort((a, b) => a - b).map((i) => x.sets[i]).filter((s) => s && (s.kg || s.reps))
           .map((s) => ({ kg: s.kg, reps: s.reps, done: !!s.done }));
         if (!sets.length) continue;
-        out.push({ t: l.t || 0, week: l.week, day: l.day, sets, best: Math.max(...sets.map((s) => e1rm(s.kg, s.reps))) });
+        out.push({ t: l.t || 0, week: l.week, day: l.day, sets, best: Math.max(...sets.map((s) => e1rm(s.kg, s.reps))), note: l.note || '', energy: l.energy || 0 });
       }
     }
     return out.sort((a, b) => b.t - a.t);
+  }
+
+  // Duração da sessão em minutos: da primeira à última série marcada (precisa de duas marcações).
+  function sessionDuration(doc) {
+    const ts = [];
+    Object.values((doc && doc.ex) || {}).forEach((x) => Object.values(x.sets || {}).forEach((s) => { if (s && s.done && s.at) ts.push(s.at); }));
+    if (ts.length < 2) return null;
+    return Math.max(1, Math.round((Math.max(...ts) - Math.min(...ts)) / 60000));
+  }
+
+  // Recorde: a série supera a maior carga ou o maior 1RM estimado de todas as outras sessões do exercício.
+  // Sem nenhuma sessão anterior não há recorde (a primeira vez não conta).
+  function isRecord(logs, name, exceptKey, kg, reps) {
+    let maxKg = 0, maxE = 0, any = false;
+    for (const k in logs) {
+      if (k === exceptKey || !logs[k] || !logs[k].ex) continue;
+      for (const id in logs[k].ex) {
+        const x = logs[k].ex[id];
+        if (!x || x.used !== name) continue;
+        Object.values(x.sets || {}).forEach((s) => {
+          if (!s || !s.done || !num(s.kg)) return;
+          any = true; maxKg = Math.max(maxKg, num(s.kg)); maxE = Math.max(maxE, e1rm(s.kg, s.reps));
+        });
+      }
+    }
+    if (!any || !num(kg)) return null;
+    const byKg = num(kg) > maxKg, byE = e1rm(kg, reps) > maxE;
+    return byKg || byE ? { kg: byKg, e1rm: byE } : null;
+  }
+
+  // Anilhas por lado para chegar na carga total, com a barra e as anilhas disponíveis (gulosa, da maior para a menor).
+  function plates(total, bar, available) {
+    const per = (num(total) - num(bar)) / 2;
+    if (!(per > 0)) return { side: [], rest: Math.max(0, Math.round(per * 100) / 100), ok: per === 0 };
+    const side = [];
+    let left = Math.round(per * 100) / 100;
+    available.slice().sort((a, b) => b - a).forEach((p) => { while (left + 1e-9 >= p) { side.push(p); left = Math.round((left - p) * 100) / 100; } });
+    return { side, rest: left, ok: left === 0 };
   }
 
   // Programa próprio: dias com nome e uma lista de exercícios que vale para todas as semanas.
@@ -217,7 +255,7 @@
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
