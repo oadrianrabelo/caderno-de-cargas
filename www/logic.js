@@ -30,6 +30,28 @@
     return m ? Math.min(6, Math.max(...m.map(Number))) : 0;
   }
 
+  // Descanso em segundos a partir do texto do programa ("2-3 min" → 120, "90 s" → 90): usa o menor valor.
+  function restSeconds(t) {
+    const m = String(t || '').match(/(\d+(?:[.,]\d+)?)/);
+    if (!m) return 0;
+    const v = parseFloat(m[1].replace(',', '.'));
+    return Math.round(/s(eg)?\b|sec/i.test(t) && !/min/i.test(t) ? v : v * 60);
+  }
+
+  // Dupla progressão: se na última vez todas as séries válidas bateram o topo da faixa de reps,
+  // é hora de subir a carga. Devolve a carga sugerida para comparar ou null.
+  function progressHint(lastSets, nSets, repsRange) {
+    const top = (String(repsRange || '').match(/\d+/g) || []).map(Number).pop();
+    if (!top || !lastSets) return null;
+    // Compara com o que foi registrado da última vez (o número de séries pode mudar de um bloco para outro).
+    const rec = Object.values(lastSets).filter((x) => x && (x.kg || x.reps));
+    const sets = rec.filter((x) => x.done && x.reps);
+    if (!sets.length || sets.length < Math.min(nSets, rec.length)) return null;
+    if (!rec.every((x) => x.done && num(x.reps) >= top)) return null;
+    const kg = Math.max(...sets.map((x) => num(x.kg)));
+    return { top, kg };
+  }
+
   // Devolve a lista editável do dia, criando-a a partir do programa base se ainda não existir.
   function editList(custom, P, w, d) {
     const k = w + '-' + d;
@@ -160,7 +182,7 @@
   // `programs` vem null quando o backup não tem programas próprios (backups antigos).
   function parseBackup(text) {
     const o = parse(text, null);
-    if (!o || typeof o.logs !== 'object') return null;
+    if (!o || !o.logs || typeof o.logs !== 'object' || Array.isArray(o.logs)) return null;
     const programs = o.programs && typeof o.programs === 'object' && o.programs.list && typeof o.programs.list === 'object' ? o.programs : null;
     const extra = o.extra && typeof o.extra === 'object' ? o.extra : null;
     return { logs: o.logs, custom: o.custom && typeof o.custom === 'object' ? o.custom : {}, programs, extra };
@@ -170,7 +192,7 @@
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

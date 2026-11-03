@@ -244,3 +244,34 @@ test('detalhes do programa: arquivo próprio, separado do backup, e incluído no
   assert.deepEqual(CG.parseBackup(txt).extra, extra);
   assert.equal(JSON.parse(CG.serializeBackup({}, {}, null, {})).extra, undefined);
 });
+
+test('backup: logs nulo ou lista é inválido (travava o app no HTML original)', () => {
+  assert.equal(CG.parseBackup('{"logs":null}'), null);
+  assert.equal(CG.parseBackup('{"logs":[]}'), null);
+});
+
+test('restSeconds: usa o menor valor do descanso', () => {
+  assert.equal(CG.restSeconds('3-5 min'), 180);
+  assert.equal(CG.restSeconds('1-2 min'), 60);
+  assert.equal(CG.restSeconds('2 min'), 120);
+  assert.equal(CG.restSeconds('1,5 min'), 90);
+  assert.equal(CG.restSeconds('90 s'), 90);
+  assert.equal(CG.restSeconds('45 seg'), 45);
+  assert.equal(CG.restSeconds(''), 0);
+  assert.equal(CG.restSeconds(undefined), 0);
+});
+
+test('progressHint: sugere subir a carga só se todas as séries bateram o topo das reps', () => {
+  const s = (kg, reps, done = true) => ({ kg, reps, done });
+  assert.deepEqual(CG.progressHint({ 0: s('60', '8'), 1: s('60', '8') }, 2, '6-8'), { top: 8, kg: 60 });
+  assert.deepEqual(CG.progressHint({ 0: s('62,5', '10'), 1: s('60', '9') }, 2, '8-10'), null);
+  // Série não marcada como feita não conta.
+  assert.equal(CG.progressHint({ 0: s('60', '8'), 1: s('60', '8', false) }, 2, '6-8'), null);
+  // Programa passou de 2 para 3 séries: vale o que foi registrado da última vez.
+  assert.deepEqual(CG.progressHint({ 0: s('60', '8'), 1: s('60', '8') }, 3, '6-8'), { top: 8, kg: 60 });
+  // Uma série registrada abaixo do topo impede a dica.
+  assert.equal(CG.progressHint({ 0: s('60', '8'), 1: s('60', '7') }, 3, '6-8'), null);
+  assert.equal(CG.progressHint(null, 2, '6-8'), null);
+  assert.equal(CG.progressHint({ 0: s('60', '8') }, 1, ''), null);
+  assert.deepEqual(CG.progressHint({ 0: s('20', '20') }, 1, '10-20'), { top: 20, kg: 20 });
+});
