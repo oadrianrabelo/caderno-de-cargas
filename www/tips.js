@@ -52,6 +52,12 @@
         'mais longos. Nos compostos pesados, priorize execução e pare perto da falha (RPE alto) sem precisar ir até ela, ' +
         'a não ser que a técnica da última série peça.'
     },
+    progressao: {
+      name: 'Hora de subir a carga',
+      text: 'Da última vez você fez o topo da faixa de repetições em todas as séries válidas. Na próxima, aumente a carga ' +
+        'um pouco (o menor incremento que tiver: 1 a 2,5 kg em halteres e máquinas, 2,5 a 5 kg na barra) e volte para o começo ' +
+        'da faixa. Quando chegar ao topo de novo em todas as séries, sobe outra vez.'
+    },
     hipertrofia: {
       name: 'Dia de hipertrofia',
       text: 'Foco em crescimento muscular: mais repetições, descansos um pouco menores e séries terminando bem perto ' +

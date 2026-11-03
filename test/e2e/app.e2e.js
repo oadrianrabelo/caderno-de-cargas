@@ -87,6 +87,16 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.equal(await p2.textContent('#title'), 'Lower');
       await p2.click('.tab >> nth=0');
       assert.equal(await p2.inputValue('.set >> nth=0 >> input >> nth=0'), '42.5');
+      // Desfazer volta para os dados de antes da importação.
+      assert.ok(await p2.isVisible('#undonote >> text=Desfazer importação'));
+      await p2.click('#undonote >> text=Desfazer importação');
+      await p2.waitForFunction(() => document.getElementById('status').textContent === 'Importação desfeita');
+      assert.equal(await p2.inputValue('.set >> nth=0 >> input >> nth=0'), '');
+      await p2.setInputFiles('#fimp', file);
+      await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup importado');
+      await p2.click('#undonote >> text=Manter');
+      assert.equal(await p2.isVisible('#undonote'), false);
+      await p2.click('.tab >> nth=0');
       fs.writeFileSync(file, 'lixo');
       await p2.setInputFiles('#fimp', file);
       await p2.waitForFunction(() => document.getElementById('status').textContent === 'Arquivo inválido');
@@ -243,7 +253,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
     await t.test('painéis começam fechados', async () => {
       const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      for (const id of ['#cloud', '#progress', '#programs', '#skipnote']) assert.equal(await p.isVisible(id), false, id);
+      for (const id of ['#cloud', '#progress', '#programs', '#skipnote', '#timer', '#bkpnote', '#undonote']) assert.equal(await p.isVisible(id), false, id);
       await ctx.close();
     });
 
@@ -536,6 +546,45 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.equal(await p2.locator('.ex >> nth=1 >> .tag.tec').textContent(), 'Última série: Along. estático ⓘ');
       fs.unlinkSync(file);
       await ctx.close(); await ctx2.close();
+    });
+
+    await t.test('cronômetro de descanso, dica de progressão e lembrete de backup', async () => {
+      const ctx = await browser.newContext({ acceptDownloads: true }); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      // Série feita: descanso do 1º exercício do Upper (3-5 min) começa em 3:00.
+      await fill(p, '60', '8');
+      await p.waitForSelector('#timer:not([hidden])');
+      assert.match(await p.textContent('#timer .tl small'), /Descanso · 45° Incline Barbell Press/);
+      assert.match(await p.textContent('#timer .tl b'), /^(3:00|2:59)$/);
+      await p.click('#timer [aria-label="Mais 15 segundos"]');
+      assert.match(await p.textContent('#timer .tl b'), /^3:1[45]$/);
+      await p.evaluate(() => CGTimer.start(1, 'teste'));
+      await p.waitForFunction(() => document.querySelector('#timer .tl b').textContent === 'Próxima série!', null, { timeout: 4000 });
+      assert.ok(await p.evaluate(() => document.getElementById('timer').classList.contains('end')));
+      await p.click('#timer [aria-label="Parar descanso"]');
+      assert.equal(await p.isVisible('#timer'), false);
+
+      // Topo das reps (8) nas 2 séries do supino na semana 1: na semana 2 sugere subir a carga.
+      const set2 = p.locator('.ex >> nth=0 >> .set:not(.warm) >> nth=1');
+      await set2.locator('input').nth(0).fill('60'); await set2.locator('input').nth(1).fill('8'); await set2.locator('.ck').click();
+      await p.click('#wnext');
+      assert.equal(await p.textContent('.ex >> nth=0 >> .tag.tec'), '↑ Bateu 8 reps em todas: suba a carga ⓘ');
+      await p.click('.ex >> nth=0 >> .tag.tec');
+      assert.equal(await p.textContent('.tipbox h2'), 'Hora de subir a carga');
+      await p.click('.tipbox >> text=Entendi');
+      // Um só treino feito: ainda sem lembrete. Dois treinos: aparece. Exportar some com ele.
+      assert.equal(await p.isVisible('#bkpnote'), false);
+      await p.click('.tab >> nth=1');
+      await fill(p, '40', '10');
+      await p.waitForSelector('#bkpnote >> text=Você ainda não fez backup.');
+      const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#bkpnote >> text=Exportar backup agora')]);
+      assert.match(dl.suggestedFilename(), /\.json$/);
+      assert.equal(await p.isVisible('#bkpnote'), false);
+      // Backup antigo (8 dias) volta a lembrar.
+      await p.evaluate(() => localStorage.setItem('cg:lastBackup', String(Date.now() - 8 * 86400000)));
+      await p.reload();
+      await p.waitForSelector('#bkpnote >> text=Último backup há 8 dias.');
+      await ctx.close();
     });
 
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
