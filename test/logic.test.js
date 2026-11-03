@@ -364,3 +364,39 @@ test('lastNote: anotação da última vez desse dia, ignorando o treino atual', 
   assert.deepEqual(CG.lastNote(logs, 'upper', '3-upper'), { t: 100, week: 1, note: 'banco 4', energy: 0 });
   assert.equal(CG.lastNote(logs, 'legs', 'x'), null);
 });
+
+test('volumeByWeek: soma kg × reps das séries feitas por semana do programa', () => {
+  const logs = {
+    '1-upper': log(1, 'upper', 1, { o0: { used: 'A', sets: { 0: set('60', '8'), 1: set('60', '8', false) } } }),
+    '1-lower': log(1, 'lower', 2, { o0: { used: 'B', sets: { 0: set('100', '5') } } }),
+    '3-push': log(3, 'push', 3, { o0: { used: 'C', sets: { 0: set('20,5', '10') } } }),
+    '2-dX': log(2, 'dX', 4, { o0: { used: 'D', sets: { 0: set('999', '1') } } }), // outro programa
+  };
+  assert.deepEqual(CG.volumeByWeek(logs, CG.ORDER, 4), [980, 0, 205, 0]);
+});
+
+test('preferredVariant: lembra a substituição usada da última vez no mesmo exercício do dia', () => {
+  const logs = {
+    '1-upper': log(1, 'upper', 100, { o0: { used: 'Halter', sets: { 0: set('20', '10') } } }),
+    '2-upper': log(2, 'upper', 200, { o0: { used: 'Máquina', sets: { 0: set('50', '10') } } }),
+    '3-upper': log(3, 'upper', 300, { o0: { used: 'Outro nome', sets: {} } }),
+  };
+  const opts = ['Barra', 'Halter', 'Máquina'];
+  assert.equal(CG.preferredVariant(logs, 'upper', 'o0', opts, '4-upper'), 'Máquina');
+  assert.equal(CG.preferredVariant(logs, 'upper', 'o0', ['Barra', 'Halter'], '4-upper'), null);
+  assert.equal(CG.preferredVariant(logs, 'lower', 'o0', opts, 'x'), null);
+  assert.equal(CG.preferredVariant(logs, 'upper', 'o1', opts, 'x'), null);
+});
+
+test('toCSV: uma linha por série, com aquecimento, energia e nota escapadas', () => {
+  const logs = {
+    '1-upper': Object.assign(log(1, 'upper', new Date(2026, 10, 3, 18).getTime(), { o0: { used: 'Supino; reto', warm: { 0: { kg: '30', reps: '8' } }, sets: { 0: set('62.5', '8'), 1: set('', '', false) } } }), { energy: 4, note: 'Disse "boa"' }),
+  };
+  const csv = CG.toCSV(logs, { upper: 'Upper' });
+  assert.ok(csv.startsWith('\ufeff'));
+  const lines = csv.slice(1).trim().split('\r\n');
+  assert.equal(lines[0], 'data;semana;dia;exercicio;tipo;serie;kg;reps;feita;energia;anotacao');
+  assert.equal(lines[1], '2026-11-03;1;Upper;"Supino; reto";aquecimento;1;30;8;;4;"Disse ""boa"""');
+  assert.equal(lines[2], '2026-11-03;1;Upper;"Supino; reto";valida;1;62,5;8;sim;;');
+  assert.equal(lines.length, 3);
+});

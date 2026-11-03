@@ -264,6 +264,51 @@
     return best;
   }
 
+  // Volume (kg × reps das séries feitas) por semana do programa em uso.
+  function volumeByWeek(logs, order = ORDER, weeks = LAST_WEEK) {
+    const out = Array.from({ length: weeks }, () => 0);
+    Object.values(logs).forEach((l) => {
+      if (!l || !l.ex || order.indexOf(l.day) < 0 || !(l.week >= 1 && l.week <= weeks)) return;
+      Object.values(l.ex).forEach((x) => Object.values((x && x.sets) || {}).forEach((s) => { if (s && s.done) out[l.week - 1] += num(s.kg) * num(s.reps); }));
+    });
+    return out.map(Math.round);
+  }
+
+  // Variação escolhida da última vez para esse exercício do dia (mesmo id), se ainda for uma opção válida.
+  function preferredVariant(logs, day, exId, options, exceptKey) {
+    let best = null;
+    for (const k in logs) {
+      const l = logs[k];
+      if (k === exceptKey || !l || l.day !== day || !l.ex || !l.ex[exId] || !l.t) continue;
+      const x = l.ex[exId];
+      if (!x.used || !Object.values(x.sets || {}).some((s) => s && (s.kg || s.reps))) continue;
+      if (!best || l.t > best.t) best = { t: l.t, used: x.used };
+    }
+    return best && options.indexOf(best.used) >= 0 ? best.used : null;
+  }
+
+  // Planilha CSV (separador ";" e BOM, para o Excel em português abrir certo): uma linha por série registrada.
+  function toCSV(logs, names) {
+    const q = (v) => { const s = String(v == null ? '' : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const rows = [['data', 'semana', 'dia', 'exercicio', 'tipo', 'serie', 'kg', 'reps', 'feita', 'energia', 'anotacao']];
+    Object.values(logs).filter((l) => l && l.ex && l.t).sort((a, b) => a.t - b.t).forEach((l) => {
+      const d = isoDay(l.t), dn = (names && names[l.day]) || l.day;
+      let first = true;
+      Object.values(l.ex).forEach((x) => {
+        if (!x) return;
+        const add = (tipo, sets) => Object.keys(sets || {}).sort((a, b) => a - b).forEach((i) => {
+          const s = sets[i];
+          if (!s || !(s.kg || s.reps)) return;
+          rows.push([d, l.week, dn, x.used, tipo, Number(i) + 1, String(s.kg || '').replace('.', ','), s.reps || '', tipo === 'aquecimento' ? '' : s.done ? 'sim' : 'não', first ? l.energy || '' : '', first ? l.note || '' : '']);
+          first = false;
+        });
+        add('aquecimento', x.warm);
+        add('valida', x.sets);
+      });
+    });
+    return '\ufeff' + rows.map((r) => r.map(q).join(';')).join('\r\n') + '\r\n';
+  }
+
   // Programa próprio: dias com nome e uma lista de exercícios que vale para todas as semanas.
   function newId(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function makeProgram(name, weeks, dayNames, template) {
@@ -301,7 +346,7 @@
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, suggestNext, weekStart, weekSummary, lastNote, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, suggestNext, weekStart, weekSummary, lastNote, volumeByWeek, preferredVariant, toCSV, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
