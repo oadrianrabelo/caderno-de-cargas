@@ -218,6 +218,52 @@
     return { side, rest: left, ok: left === 0 };
   }
 
+  // Carga sugerida para a próxima vez (dupla progressão): última carga + incremento, no começo da faixa de reps.
+  function suggestNext(hint, repsRange, inc) {
+    if (!hint || !hint.kg) return null;
+    const low = (String(repsRange || '').match(/\d+/g) || []).map(Number)[0] || '';
+    return { kg: Math.round((hint.kg + (num(inc) || 2.5)) * 100) / 100, reps: low };
+  }
+
+  // Segunda-feira 00:00 da semana de `t` (horário local).
+  function weekStart(t) {
+    const d = new Date(t);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)).getTime();
+  }
+
+  // Resumo da semana do calendário (segunda a domingo): treinos, séries, volume, recordes e energia média.
+  function weekSummary(logs, now) {
+    const a = weekStart(now), z = a + 7 * 86400000;
+    const all = Object.keys(logs).map((k) => [k, logs[k]]).filter(([, l]) => l && l.t && l.ex);
+    let sessions = 0, sets = 0, vol = 0, records = 0;
+    const energy = [];
+    all.forEach(([k, l]) => {
+      if (l.t < a || l.t >= z || dayStatus(l) !== 'done') return;
+      sessions++;
+      if (l.energy) energy.push(l.energy);
+      // Recordes contra as sessões anteriores a esta.
+      const before = {};
+      all.forEach(([k2, l2]) => { if (k2 !== k && l2.t < l.t) before[k2] = l2; });
+      Object.values(l.ex).forEach((x) => Object.values((x && x.sets) || {}).forEach((st) => {
+        if (!st || !st.done) return;
+        sets++; vol += num(st.kg) * num(st.reps);
+        if (isRecord(before, x.used, k, st.kg, st.reps)) records++;
+      }));
+    });
+    return { start: a, sessions, sets, volume: Math.round(vol), records, energy: energy.length ? Math.round((energy.reduce((p, c) => p + c, 0) / energy.length) * 10) / 10 : 0 };
+  }
+
+  // Anotação da última vez que esse mesmo dia foi treinado (outra semana), para lembrar ajustes.
+  function lastNote(logs, day, exceptKey) {
+    let best = null;
+    for (const k in logs) {
+      const l = logs[k];
+      if (k === exceptKey || !l || l.day !== day || !(l.note || l.energy) || !l.t) continue;
+      if (!best || l.t > best.t) best = { t: l.t, week: l.week, note: l.note || '', energy: l.energy || 0 };
+    }
+    return best;
+  }
+
   // Programa próprio: dias com nome e uma lista de exercícios que vale para todas as semanas.
   function newId(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function makeProgram(name, weeks, dayNames, template) {
@@ -255,7 +301,7 @@
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, suggestNext, weekStart, weekSummary, lastNote, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -330,3 +330,37 @@ test('plates: anilhas por lado', () => {
   assert.deepEqual(CG.plates(15, 20, P).ok, false);
   assert.deepEqual(CG.plates(60, 20, [10, 5]), { side: [10, 10], rest: 0, ok: true });
 });
+
+test('suggestNext: última carga + incremento, no começo da faixa', () => {
+  assert.deepEqual(CG.suggestNext({ top: 8, kg: 60 }, '6-8', 2.5), { kg: 62.5, reps: 6 });
+  assert.deepEqual(CG.suggestNext({ top: 12, kg: 20 }, '10-12', '1'), { kg: 21, reps: 10 });
+  assert.deepEqual(CG.suggestNext({ top: 8, kg: 60 }, '6-8'), { kg: 62.5, reps: 6 });
+  assert.equal(CG.suggestNext(null, '6-8', 2.5), null);
+  assert.equal(CG.suggestNext({ top: 15, kg: 0 }, '12-15', 2.5), null);
+});
+
+test('weekSummary: só a semana atual (segunda a domingo), com recordes contra sessões anteriores', () => {
+  const wed = new Date(2026, 10, 4, 18).getTime(); // quarta 04/11/2026
+  const mon = new Date(2026, 10, 2, 7).getTime(), lastSun = new Date(2026, 10, 1, 20).getTime();
+  const logs = {
+    '1-upper': Object.assign(log(1, 'upper', lastSun, { o0: { used: 'Supino', sets: { 0: set('60', '8') } } }), { energy: 1 }),
+    '1-lower': Object.assign(log(1, 'lower', mon, { o0: { used: 'Agacho', sets: { 0: set('100', '5') } } }), { energy: 4 }),
+    '1-pull': Object.assign(log(1, 'pull', wed, { o0: { used: 'Supino', sets: { 0: set('62.5', '8'), 1: set('50', '10') } } }), { energy: 5 }),
+    '1-push': Object.assign(log(1, 'push', wed + 1000, {}), { skip: true }),
+  };
+  assert.equal(CG.weekStart(wed), new Date(2026, 10, 2).getTime());
+  assert.deepEqual(CG.weekSummary(logs, wed), { start: new Date(2026, 10, 2).getTime(), sessions: 2, sets: 3, volume: 500 + 500 + 500, records: 1, energy: 4.5 });
+});
+
+test('lastNote: anotação da última vez desse dia, ignorando o treino atual', () => {
+  const logs = {
+    '1-upper': Object.assign(log(1, 'upper', 100, {}), { note: 'banco 4' }),
+    '2-upper': Object.assign(log(2, 'upper', 300, {}), { energy: 3 }),
+    '3-upper': Object.assign(log(3, 'upper', 500, {}), { note: 'agora' }),
+    '2-lower': Object.assign(log(2, 'lower', 400, {}), { note: 'outro dia' }),
+  };
+  assert.deepEqual(CG.lastNote(logs, 'upper', '3-upper'), { t: 300, week: 2, note: '', energy: 3 });
+  delete logs['2-upper'].energy;
+  assert.deepEqual(CG.lastNote(logs, 'upper', '3-upper'), { t: 100, week: 1, note: 'banco 4', energy: 0 });
+  assert.equal(CG.lastNote(logs, 'legs', 'x'), null);
+});
