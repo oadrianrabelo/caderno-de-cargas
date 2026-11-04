@@ -391,7 +391,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
         await ctx.addInitScript(FAKE_CAP); await ctx.addInitScript(UPD);
         await ctx.addInitScript('window.__bundle = ' + JSON.stringify(bundleJson) + ';');
         await ctx.route('**/version.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: 'v0.5.0', build: 5, native: 'aaaaaaaaaaaa' }) }));
-        await ctx.route('https://api.github.com/repos/**/releases/latest', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(release), headers: { 'Access-Control-Allow-Origin': '*' } }));
+        await ctx.route(/\/repos\/[^/]+\/[^/]+\/releases\?per_page=20$/, (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify([release]), headers: { 'Access-Control-Allow-Origin': '*' } }));
       };
 
       // Mesma parte Android: baixa e grava o pacote, avisa e aplica no toque.
@@ -493,10 +493,10 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.addInitScript(FAKE_CAP); await ctx.addInitScript(UPD);
       await ctx.addInitScript('window.__bundle = ' + JSON.stringify(bundle) + ';');
       await ctx.route('**/version.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: 'v0.5.0', build: 5, native: 'aaaaaaaaaaaa' }) }));
-      await ctx.route('https://api.github.com/repos/**/releases/latest', (r) => {
+      await ctx.route(/\/repos\/[^/]+\/[^/]+\/releases\?per_page=20$/, (r) => {
         if (r.request().headers().authorization !== 'Bearer leitura') return r.fulfill({ status: 404, body: '{}', headers: { 'Access-Control-Allow-Origin': '*' } });
-        return r.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ tag_name: 'v0.9.0', assets: [
-          { name: 'web-9-aaaaaaaaaaaa.json', browser_download_url: 'https://github.com/x/web.json', url: 'https://api.github.com/assets/9' }] }) });
+        return r.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify([{ tag_name: 'v0.9.0', assets: [
+          { name: 'web-9-aaaaaaaaaaaa.json', browser_download_url: 'https://github.com/x/web.json', url: 'https://api.github.com/assets/9' }] }]) });
       });
       const p = await ctx.newPage(); watch(p);
       await p.goto(url);
@@ -841,48 +841,15 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
-    await t.test('lembrete de treino e convite para importar no app vazio', async () => {
-      const LN = `
-        window.__ln = { scheduled: [], cancelled: 0, channel: null, perm: 'prompt' };
-        window.Capacitor.Plugins.LocalNotifications = {
-          checkPermissions: async () => ({ display: window.__ln.perm }),
-          requestPermissions: async () => { window.__ln.perm = 'granted'; return { display: 'granted' }; },
-          createChannel: async (c) => { window.__ln.channel = c; },
-          cancel: async () => { window.__ln.cancelled++; window.__ln.scheduled = []; },
-          schedule: async (o) => { window.__ln.scheduled = o.notifications; }
-        };`;
-      const ctx = await browser.newContext(); await ctx.addInitScript(FAKE_CAP); await ctx.addInitScript(LN);
-      const p = await ctx.newPage(); watch(p);
+    await t.test('convite para importar o backup no app vazio', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      // App vazio: convite para importar; some quando há dados.
       assert.ok(await p.isVisible('#freshnote >> text=Importar backup'));
       await fill(p, '50', '8');
       await p.waitForFunction(() => document.getElementById('freshnote').hidden);
-      await tool(p, '#breminder');
-      await p.click('.tipbox [aria-label="Ligar lembrete"]');
-      await p.fill('.tipbox input[type=time]', '07:15');
-      await p.click('.tipbox .have >> text=sex'); // tira sexta
-      await p.click('.tipbox .have >> text=sáb'); // põe sábado
-      await p.click('.tipbox >> text=Salvar');
-      await p.waitForSelector('#remst >> text=Lembrete ativo: seg, ter, qua, qui, sáb às 07:15');
-      const n = await p.evaluate(() => window.__ln);
-      assert.equal(n.perm, 'granted');
-      assert.equal(n.channel.id, 'treino');
-      assert.deepEqual(n.scheduled.map((x) => x.schedule.on.weekday), [2, 3, 4, 5, 7]);
-      assert.equal(n.scheduled[0].body, 'Hoje: Lower · semana 1. Bora!');
-      // Desligar cancela.
-      await p.click('.tipbox [aria-label="Ligar lembrete"]');
-      await p.click('.tipbox >> text=Salvar');
-      await p.waitForSelector('#remst >> text=Lembrete desligado');
-      assert.deepEqual(await p.evaluate(() => window.__ln.scheduled), []);
-      await p.click('.tipbox >> text=Fechar');
+      await p.reload();
+      assert.equal(await p.isVisible('#freshnote'), false);
       await ctx.close();
-      // No navegador o painel avisa que é só no app.
-      const ctx2 = await browser.newContext(); const p2 = await ctx2.newPage(); watch(p2);
-      await p2.goto(url);
-      await tool(p2, '#breminder');
-      await p2.waitForSelector('.tipbox >> text=só funciona no app instalado');
-      await ctx2.close();
     });
 
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));

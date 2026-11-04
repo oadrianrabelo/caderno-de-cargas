@@ -33,7 +33,22 @@
       typeof b.files['logic.js'] === 'string' && typeof b.files['update.js'] === 'string');
   }
 
-  const api = { decide, parseRelease, validBundle };
+  // Entre várias Releases: a versão web mais nova compatível com o APK instalado (mesmo hash nativo)
+  // e, à parte, se existe um APK mais novo. Assim uma Release que exige APK não trava as atualizações web.
+  function choose(cur, releases, bad) {
+    let web = null, apk = null;
+    (releases || []).forEach((rel) => {
+      if (!rel || rel.draft) return;
+      const r = parseRelease(rel);
+      if (!r || !cur || !(r.build > cur.build)) return;
+      if (r.native === cur.native) { if (r.build !== bad && (!web || r.build > web.build)) web = r; }
+      else if (!apk || r.build > apk.build) apk = r;
+    });
+    if (apk && web && apk.build < web.build) apk = null;
+    return { web, apk };
+  }
+
+  const api = { decide, parseRelease, validBundle, choose };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
 
   const cap = root.Capacitor, app = root.CGApp;
@@ -98,12 +113,12 @@
     } catch (e) { /* pasta ainda não existe */ }
   }
 
-  async function latestRelease(st) {
-    const r = await fetch('https://api.github.com/repos/' + REPO + '/releases/latest', { headers: Object.assign({ Accept: 'application/vnd.github+json' }, auth(st)) }).catch(() => null);
+  async function listReleases(st) {
+    const r = await fetch('https://api.github.com/repos/' + REPO + '/releases?per_page=20', { headers: Object.assign({ Accept: 'application/vnd.github+json' }, auth(st)) }).catch(() => null);
     if (!r) return { error: 'Sem internet' };
     if (r.status === 401) return { error: 'Token inválido ou expirado' };
     if (r.status === 404 || r.status === 403) return { error: st.token ? 'O token não tem acesso ao repositório' : 'Repositório privado: cole um token de leitura' };
-    return r.ok ? { rel: await r.json() } : { error: 'GitHub respondeu ' + r.status };
+    return r.ok ? { list: await r.json() } : { error: 'GitHub respondeu ' + r.status };
   }
 
   async function run(force) {
@@ -125,11 +140,13 @@
 
     // 3. Procura versão nova (no máximo a cada 6 horas, e só com internet).
     if (!force && (root.navigator.onLine === false || (st.checked && Date.now() - st.checked < CHECK_EVERY_MS))) return;
-    const got = await latestRelease(st);
+    const got = await listReleases(st);
     st.lastResult = got.error || 'ok'; store(st);
-    if (!got.rel) return got.error;
+    if (!got.list) return got.error;
     st.checked = Date.now(); store(st);
-    const remote = parseRelease(got.rel), what = decide(cur, remote, info.bad);
+    const pick = choose(cur, got.list, info.bad);
+    // Atualização web primeiro (não precisa de APK); o aviso de APK só se não houver nada mais novo compatível.
+    const what = pick.web ? 'web' : pick.apk ? 'apk' : 'none', remote = pick.web || pick.apk;
     if (what === 'apk') {
       banner('Nova versão ' + remote.version + ' do app, que precisa instalar o APK. Se o Android pedir para desinstalar o app antigo, ' +
         'os dados serão apagados: exporte o backup antes e importe depois de instalar.', remote.apk ? 'Baixar APK' : null, null, remote.apk);

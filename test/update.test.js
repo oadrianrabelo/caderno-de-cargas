@@ -65,15 +65,21 @@ test('pacote web: inclui todos os arquivos de www e grava version.json', () => {
   }
 });
 
-test('lembrete: agenda uma notificação semanal por dia escolhido', () => {
-  const { plan } = require('../www/reminder.js');
-  const n = plan({ on: true, time: '07:30', days: [6, 0, 4] }, 'Hoje: Upper');
-  // Dias do app: 0 = segunda ... 6 = domingo. Plugin: 1 = domingo ... 7 = sábado.
-  assert.deepEqual(n.map((x) => x.schedule.on), [{ weekday: 2, hour: 7, minute: 30 }, { weekday: 6, hour: 7, minute: 30 }, { weekday: 1, hour: 7, minute: 30 }]);
-  assert.deepEqual(n.map((x) => x.id), [7100, 7104, 7106]);
-  assert.equal(n[0].body, 'Hoje: Upper');
-  assert.equal(n[0].schedule.allowWhileIdle, true);
-  assert.deepEqual(plan({ on: false, time: '07:30', days: [0] }), []);
-  assert.deepEqual(plan({ on: true, time: 'xx', days: [0] }), []);
-  assert.deepEqual(plan({ on: true, time: '18:00', days: [] }), []);
+
+test('atualização: escolhe a versão web compatível mesmo se a mais nova exigir APK', () => {
+  const { choose } = require('../www/update.js');
+  const rel = (tag, build, native) => ({ tag_name: tag, assets: [{ name: 'web-' + build + '-' + native + '.json', browser_download_url: 'u' + build }, { name: tag + '.apk', browser_download_url: 'a' + build }] });
+  const cur = { build: 22, native: 'aaa' };
+  // v0.3.0 (build 26) exige APK; v0.3.1 (build 27) volta a ser compatível; v0.2.9 (24) compatível.
+  let r = choose(cur, [rel('v0.3.1', 27, 'aaa'), rel('v0.3.0', 26, 'bbb'), rel('v0.2.9', 24, 'aaa'), rel('v0.2.8', 22, 'aaa')], 0);
+  assert.equal(r.web.version, 'v0.3.1');
+  assert.equal(r.apk, null); // nada mais novo que exija APK
+  // Só a mais nova exige APK: ainda assim baixa a web compatível mais nova e avisa do APK.
+  r = choose(cur, [rel('v0.3.0', 26, 'bbb'), rel('v0.2.9', 24, 'aaa')], 0);
+  assert.equal(r.web.version, 'v0.2.9');
+  assert.equal(r.apk.version, 'v0.3.0');
+  // Versão que falhou antes é pulada; rascunho é ignorado.
+  r = choose(cur, [Object.assign(rel('v0.3.2', 30, 'aaa'), { draft: true }), rel('v0.3.1', 27, 'aaa'), rel('v0.2.9', 24, 'aaa')], 27);
+  assert.equal(r.web.version, 'v0.2.9');
+  assert.deepEqual(choose(cur, [], 0), { web: null, apk: null });
 });
