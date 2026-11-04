@@ -20,17 +20,7 @@ android {
     // Assinatura de release só existe quando a keystore é passada por variáveis de ambiente
     // (secrets do GitHub Actions). Nada de keystore ou senha no repositório.
     def ksPath = System.getenv("ANDROID_KEYSTORE_PATH")
-    // Chave debug fixa do CI (gerada uma vez e guardada em cache), para um APK debug novo instalar por cima do anterior.
-    def debugKs = System.getenv("DEBUG_KEYSTORE_PATH")
     signingConfigs {
-        if (debugKs) {
-            debug {
-                storeFile file(debugKs)
-                storePassword "android"
-                keyAlias "androiddebugkey"
-                keyPassword "android"
-            }
-        }
         if (ksPath) {
             release {
                 storeFile file(ksPath)

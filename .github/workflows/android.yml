@@ -98,7 +98,14 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ "$BUILD_TYPE" = "release" ]; then ./gradlew --no-daemon assembleRelease; else ./gradlew --no-daemon assembleDebug; fi
+          if [ "$BUILD_TYPE" = "release" ]; then
+            ./gradlew --no-daemon assembleRelease
+          else
+            # Assina o debug com a chave fixa do cache, sem mudar o projeto Android (que entra no hash nativo).
+            ./gradlew --no-daemon assembleDebug \
+              -Pandroid.injected.signing.store.file="$DEBUG_KEYSTORE_PATH" -Pandroid.injected.signing.store.password=android \
+              -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
+          fi
           apk=$(ls app/build/outputs/apk/$BUILD_TYPE/*.apk | head -1)
           mkdir -p "$GITHUB_WORKSPACE/dist"
           cp "$apk" "$GITHUB_WORKSPACE/dist/caderno-de-cargas-${VERSION_NAME}-${BUILD_TYPE}.apk"
