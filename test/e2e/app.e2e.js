@@ -874,6 +874,38 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
+    await t.test('técnica da última série com cor própria e aviso antes dela', async () => {
+      const det = { type: 'caderno-detalhes', v: 1, extra: { 1: { upper: [{ tec: 'myo' }, { tec: 'llp' }, { tec: 'falha' }] } } };
+      const file = path.join(os.tmpdir(), 'cg-e2e-tec-' + process.pid + '.json');
+      fs.writeFileSync(file, JSON.stringify(det));
+      const ctx = await browser.newContext({ colorScheme: 'light' }); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await p.setInputFiles('#fimp', file);
+      await p.waitForFunction(() => document.getElementById('status').textContent === 'Detalhes do programa importados');
+      const tec = (sel) => p.evaluate((q) => getComputedStyle(document.querySelector(q)).getPropertyValue('--tec').trim(), sel);
+      const last = (i) => '.ex:nth-child(' + (i + 1) + ') .set.last';
+      // Cada técnica com a sua cor, na série e na etiqueta.
+      assert.equal(await tec(last(0)), '#d9480f');
+      assert.equal(await tec(last(1)), '#7048e8');
+      assert.equal(await tec(last(2)), '#c92a2a');
+      assert.equal(await p.evaluate(() => getComputedStyle(document.querySelector('.ex .tag.tec-myo')).borderTopColor), 'rgb(217, 72, 15)');
+      assert.equal(await p.locator('.ex >> nth=0 >> .set.last').count(), 1);
+      assert.equal(await p.textContent('.ex >> nth=0 >> .set.last .tq'), 'Myo-reps');
+      // Tema escuro: tons mais claros.
+      await tool(p, '#btheme'); await p.click('#btheme');
+      assert.equal(await tec(last(0)), '#ffa94d');
+      // Marcar a penúltima avisa a técnica da última.
+      const r = p.locator('.ex >> nth=0 >> .set:not(.warm) >> nth=0');
+      await r.locator('input >> nth=0').fill('60'); await r.locator('input >> nth=1').fill('8'); await r.locator('.ck').click();
+      await p.waitForSelector('#toast.on >> text=⚠ Próxima é a última: MYO-REPS');
+      assert.ok(await p.evaluate(() => document.getElementById('toast').classList.contains('tec-myo')));
+      // A dica no glossário também vem colorida.
+      await p.click('.ex >> nth=0 >> .tag.tec-myo');
+      assert.ok(await p.evaluate(() => document.querySelector('.tipbox h2').classList.contains('tec-myo')));
+      fs.unlinkSync(file);
+      await ctx.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {

@@ -21,9 +21,10 @@
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const kg = (v) => String(v).replace('.', ',');
 
-  function toast(text) {
+  function toast(text, tecKey) {
     let t = document.getElementById('toast');
     if (!t) { t = mk('div', 'toast'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.className = 'toast' + (tecKey ? ' tech tec-' + tecKey : '');
     t.textContent = text;
     requestAnimationFrame(() => t.classList.add('on'));
     clearTimeout(t._tm); t._tm = setTimeout(() => t.classList.remove('on'), 3500);
@@ -101,6 +102,12 @@
       const wasPr = row.classList.contains('rec');
       badges();
       const du = document.getElementById('sessdur'); if (du) du.textContent = durText(app.view().doc);
+      // Marcou a penúltima: avisa qual técnica vem na última série.
+      const next = row.nextElementSibling;
+      if (row.classList.contains('done') && next && next.classList.contains('last') && !next.classList.contains('done') && window.CGTips) {
+        const tk = next.dataset.tec, t = CGTips.TECH[tk];
+        if (t) toast('⚠ Próxima é a última: ' + t.short.toUpperCase() + ' (toque na etiqueta para lembrar como faz)', tk);
+      }
       if (!wasPr && row.classList.contains('rec')) {
         const [k, r] = row.querySelectorAll('input'), name = c.querySelector('h2').textContent;
         const rec = CG.isRecord(app.view().logs, name, app.view().week + '-' + app.view().day, k.value, r.value);

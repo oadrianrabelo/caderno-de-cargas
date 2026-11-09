@@ -1,5 +1,10 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.3.3', date: '2026-11-09', items: [
+    'Cada técnica da última série tem sua cor: Falha vermelha, LLPs roxa, Myo-reps laranja, Drop set azul-petróleo, Alongamento estático dourada.',
+    'A última série fica destacada na cor da técnica (fundo, borda, etiqueta e ✓), e a etiqueta "Última série" e o glossário usam a mesma cor.',
+    'Ao marcar a penúltima série, aparece o aviso "Próxima é a última: MYO-REPS" (ou a técnica do exercício).'
+  ] },
   { version: 'v0.3.2', date: '2026-11-09', items: [
     'Correção: a série de recorde (🏅) não muda mais de layout; a medalha só aparece ao lado do número.',
     'Correção: o cartão "Como foi o treino?" não se repete mais ao terminar exercícios.',

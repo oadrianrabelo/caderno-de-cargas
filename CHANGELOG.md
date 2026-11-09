@@ -2,6 +2,12 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.3.3 (2026-11-09)
+
+- Cada técnica da última série tem sua cor: Falha vermelha, LLPs roxa, Myo-reps laranja, Drop set azul-petróleo, Alongamento estático dourada.
+- A última série fica destacada na cor da técnica (fundo, borda, etiqueta e ✓), e a etiqueta "Última série" e o glossário usam a mesma cor.
+- Ao marcar a penúltima série, aparece o aviso "Próxima é a última: MYO-REPS" (ou a técnica do exercício).
+
 ## v0.3.2 (2026-11-09)
 
 - Correção: a série de recorde (🏅) não muda mais de layout; a medalha só aparece ao lado do número.

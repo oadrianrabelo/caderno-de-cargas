@@ -287,8 +287,12 @@ function setRow(ex, i, s, used, last, doc, det) {
   const lastSet = sug ? sug : last ? (last[s] || last[Object.keys(last).pop()]) : null;
   const row = mk('div', 'set' + (cur.done ? ' done' : ''));
   const sl = mk('div', 'sl', 'S' + (s + 1));
-  // Última série com técnica de intensidade: mostra o nome curto embaixo do número.
-  if (s === ex.s - 1 && det && det.tec && CGTips.TECH[det.tec]) sl.appendChild(mk('span', 'tq', CGTips.TECH[det.tec].short));
+  // Última série com técnica de intensidade: destacada na cor da técnica, com o nome embaixo do número.
+  if (s === ex.s - 1 && det && det.tec && CGTips.TECH[det.tec]) {
+    row.classList.add('last', 'tec-' + det.tec);
+    row.dataset.tec = det.tec;
+    sl.appendChild(mk('span', 'tq', CGTips.TECH[det.tec].short));
+  }
   row.appendChild(sl);
 
   const f1 = mk('div', 'fld'), kg = mk('input');
@@ -368,7 +372,7 @@ function detailTags(det) {
   const tag = (txt, key, cls) => { const b = mk('button', 'tag' + (cls ? ' ' + cls : ''), txt + ' ⓘ'); b.type = 'button'; b.addEventListener('click', () => CGTips.show(key)); box.appendChild(b); };
   if (det.aq) tag(det.aq + (String(det.aq) === '1' ? ' série' : ' séries') + ' de aquecimento', 'aquecimento');
   if (det.rpe || det.rpeUlt) tag('RPE ' + [det.rpe, det.rpeUlt ? 'última ' + det.rpeUlt : ''].filter(Boolean).join(' · '), 'rpe');
-  if (det.tec && CGTips.TECH[det.tec]) tag('Última série: ' + CGTips.TECH[det.tec].short, det.tec, 'tec');
+  if (det.tec && CGTips.TECH[det.tec]) tag('Última série: ' + CGTips.TECH[det.tec].short, det.tec, 'tec tec-' + det.tec);
   return box.children.length ? box : null;
 }
 

@@ -65,25 +65,47 @@
     }
   };
 
+  // Cor de cada técnica (tema claro, tema escuro): a última série fica nessa cor para não passar batido.
+  const COLORS = { falha: ['#c92a2a', '#ff8787'], llp: ['#7048e8', '#b197fc'], myo: ['#d9480f', '#ffa94d'], drop: ['#0b7285', '#66d9e8'], estatico: ['#a37b00', '#ffd43b'] };
+  Object.keys(COLORS).forEach((k) => { TECH[k].color = COLORS[k]; });
+
   const api = { TECH, TOPICS };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
+
+  // Variável --tec por técnica (.tec-falha, .tec-llp...), com os tons do tema escuro.
+  const css = document.createElement('style');
+  const rules = (i) => Object.keys(COLORS).map((k) => '.tec-' + k + '{--tec:' + COLORS[k][i] + '}').join('');
+  css.textContent = rules(0) +
+    '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) ' + rules(1).replace(/}\./g, '}:root:not([data-theme="light"]) .') + '}' +
+    ':root[data-theme="dark"] ' + rules(1).replace(/}\./g, '}:root[data-theme="dark"] .') +
+    '.det .tag.tec[class*="tec-"]{border:2px solid var(--tec);color:var(--tec);background:transparent}' +
+    '.set.last{position:relative;border-radius:10px;padding:6px 4px;margin:0 -4px;background:rgba(127,127,127,.08);box-shadow:inset 4px 0 0 var(--tec)}' +
+    '@supports (background:color-mix(in srgb,red 10%,transparent)){.set.last{background:color-mix(in srgb,var(--tec) 13%,transparent)}}' +
+    '.set.last .sl .tq{display:inline-block;margin-top:4px;padding:3px 4px;border-radius:5px;background:var(--tec);color:#fff;font-size:9px;letter-spacing:.02em}' +
+    '.set.last .fld input{border-color:var(--tec)}.set.last:not(.done) .ck{border-color:var(--tec);color:var(--tec)}' +
+    '.tipbox h2.tech,.tipbox h3.tech{color:var(--tec)}' +
+    '.toast.tech{background:var(--tec);color:#fff}' +
+    // Tema escuro: as cores são claras, então o texto sobre elas fica escuro (contraste).
+    '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .toast.tech,:root:not([data-theme="light"]) .set.last .sl .tq{color:#0e1217}}' +
+    ':root[data-theme="dark"] .toast.tech,:root[data-theme="dark"] .set.last .sl .tq{color:#0e1217}';
+  document.head.appendChild(css);
 
   function show(key) {
     const item = TECH[key] || TOPICS[key];
     if (!item) return;
-    open(item.name, [item.text]);
+    open(item.name, [item.text], TECH[key] ? key : null);
   }
 
   function glossary() {
     const parts = [];
     Object.values(TOPICS).forEach((t) => parts.push([t.name, t.text]));
     parts.push(['Técnicas da última série', '']);
-    Object.values(TECH).forEach((t) => parts.push([t.name, t.text]));
+    Object.keys(TECH).forEach((k) => parts.push([TECH[k].name, TECH[k].text, k]));
     open('Glossário', parts);
   }
 
   // Janela simples (sem <dialog>, que nem todo WebView antigo tem).
-  function open(title, parts) {
+  function open(title, parts, tecKey) {
     let ov = document.getElementById('tipov');
     if (!ov) {
       ov = document.createElement('div'); ov.id = 'tipov'; ov.className = 'tipov';
@@ -93,10 +115,10 @@
     }
     ov.textContent = '';
     const box = document.createElement('div'); box.className = 'tipbox'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
-    const h = document.createElement('h2'); h.textContent = title; box.appendChild(h);
+    const h = document.createElement('h2'); h.textContent = title; if (tecKey) h.className = 'tech tec-' + tecKey; box.appendChild(h);
     parts.forEach((p) => {
       if (Array.isArray(p)) {
-        const t = document.createElement('h3'); t.textContent = p[0]; box.appendChild(t);
+        const t = document.createElement('h3'); t.textContent = p[0]; if (p[2]) t.className = 'tech tec-' + p[2]; box.appendChild(t);
         if (p[1]) { const x = document.createElement('p'); x.textContent = p[1]; box.appendChild(x); }
       } else { const x = document.createElement('p'); x.textContent = p; box.appendChild(x); }
     });
