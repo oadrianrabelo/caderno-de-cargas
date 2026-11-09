@@ -1,5 +1,10 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.3.2', date: '2026-11-09', items: [
+    'Correção: a série de recorde (🏅) não muda mais de layout; a medalha só aparece ao lado do número.',
+    'Correção: o cartão "Como foi o treino?" não se repete mais ao terminar exercícios.',
+    'A carga sugerida só aparece antes de começar o exercício; depois da primeira série marcada, os números cinza voltam a ser os da última vez.'
+  ] },
   { version: 'v0.3.1', date: '2026-11-04', items: [
     'Volta a atualizar sozinho no APK que você já tem: não precisa instalar APK novo. Traz tudo da v0.2.9 (gráfico de volume, substituição lembrada, preencher cargas, planilha CSV).',
     'O lembrete por notificação saiu por enquanto, porque ele exige um APK novo.',

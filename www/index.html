@@ -472,9 +472,12 @@ function renderList() {
     const last = lastFor(used, k);
     const tags = detailTags(det) || mk('div', 'det');
     const hint = CG.progressHint(last, ex.s, ex.r);
-    det.sug = CG.suggestNext(hint, ex.r, LS.get('cg:inc') || 2.5);
+    // A sugestão vale para começar o exercício; se já marcou alguma série hoje, não atrapalha as seguintes.
+    const startedToday = !!(doc.ex[ex.id] && Object.values(doc.ex[ex.id].sets || {}).some((x) => x && x.done));
+    const sugNext = CG.suggestNext(hint, ex.r, LS.get('cg:inc') || 2.5);
+    det.sug = startedToday ? null : sugNext;
     if (hint) {
-      const b = mk('button', 'tag tec', '↑ Bateu ' + hint.top + ' reps em todas: tente ' + String(det.sug ? det.sug.kg : '').replace('.', ',') + ' kg ⓘ'); b.type = 'button';
+      const b = mk('button', 'tag tec', '↑ Bateu ' + hint.top + ' reps em todas: tente ' + String(sugNext ? sugNext.kg : '').replace('.', ',') + ' kg ⓘ'); b.type = 'button';
       b.addEventListener('click', () => CGTips.show('progressao'));
       tags.appendChild(b);
     }

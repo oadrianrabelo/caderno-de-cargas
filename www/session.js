@@ -12,7 +12,7 @@
     '.sess .en button[aria-pressed="true"]{border-color:var(--day,var(--accent));background:transparent;transform:scale(1.06)}' +
     '.sess textarea{width:100%;min-height:64px;resize:vertical;border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:8px;padding:10px;font:500 15px/1.4 var(--f-body)}' +
     '.sess .du{color:var(--mute);font-size:14px}.sess .prevnote{background:var(--field);border-left:3px solid var(--day,var(--accent));border-radius:6px;padding:8px 10px;font-size:14px;color:var(--ink)}' +
-    '.set.pr .sl::after{content:"🏅";display:block;font-size:14px;line-height:1;margin-top:2px}' +
+    '.set.rec .sl::after{content:"🏅";display:block;font-size:14px;line-height:1;margin-top:2px}' +
     '.toast{position:fixed;left:50%;top:max(16px,env(safe-area-inset-top,0px));z-index:70;transform:translate(-50%,-140%);max-width:calc(100% - 32px);' +
     'background:#1d7f4e;color:#fff;border-radius:12px;padding:12px 16px;font:600 15px/1.3 var(--f-body);box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.2,.8,.2,1)}' +
     '.toast.on{transform:translate(-50%,0)}@media (prefers-reduced-motion: reduce){.toast{transition:none}}';
@@ -37,7 +37,8 @@
   // Cartão no fim da lista (some no modo de edição).
   function card() {
     if (document.querySelector('#list .tip') && !list.querySelector('.ex')) return; // dia vazio
-    if (list.querySelector('.ed') || list.querySelector('.sess')) return;
+    // O cartão fica depois da lista (não dentro): procura pelo id para não duplicar.
+    if (list.querySelector('.ed') || document.getElementById('sess')) return;
     if (!list.querySelector('.ex')) return;
     const doc = app.view().doc;
     const box = mk('section', 'sess'); box.id = 'sess';
@@ -77,7 +78,7 @@
       const e = doc.ex[ex.id];
       c.querySelectorAll('.set:not(.warm)').forEach((row, s) => {
         const st = e && e.sets[s];
-        row.classList.toggle('pr', !!(st && st.done && CG.isRecord(v.logs, t.textContent, key, st.kg, st.reps)));
+        row.classList.toggle('rec', !!(st && st.done && CG.isRecord(v.logs, t.textContent, key, st.kg, st.reps)));
       });
     });
   }
@@ -97,10 +98,10 @@
     if (!ck) return;
     const row = ck.closest('.set'), c = ck.closest('.ex');
     setTimeout(() => {
-      const wasPr = row.classList.contains('pr');
+      const wasPr = row.classList.contains('rec');
       badges();
       const du = document.getElementById('sessdur'); if (du) du.textContent = durText(app.view().doc);
-      if (!wasPr && row.classList.contains('pr')) {
+      if (!wasPr && row.classList.contains('rec')) {
         const [k, r] = row.querySelectorAll('input'), name = c.querySelector('h2').textContent;
         const rec = CG.isRecord(app.view().logs, name, app.view().week + '-' + app.view().day, k.value, r.value);
         toast('🏅 Recorde! ' + name + ': ' + kg(k.value) + ' kg × ' + r.value + (rec && !rec.kg ? ' (melhor 1RM estimado)' : ''));

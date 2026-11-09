@@ -2,6 +2,12 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.3.2 (2026-11-09)
+
+- Correção: a série de recorde (🏅) não muda mais de layout; a medalha só aparece ao lado do número.
+- Correção: o cartão "Como foi o treino?" não se repete mais ao terminar exercícios.
+- A carga sugerida só aparece antes de começar o exercício; depois da primeira série marcada, os números cinza voltam a ser os da última vez.
+
 ## v0.3.1 (2026-11-04)
 
 - Volta a atualizar sozinho no APK que você já tem: não precisa instalar APK novo. Traz tudo da v0.2.9 (gráfico de volume, substituição lembrada, preencher cargas, planilha CSV).

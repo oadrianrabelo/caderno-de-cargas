@@ -699,10 +699,14 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.equal(await p.inputValue('#sess textarea'), '');
       await mark(ex0(), 0, '65', '8');
       await p.waitForSelector('#toast.on >> text=🏅 Recorde! 45° Incline Barbell Press: 65 kg × 8');
-      assert.ok(await ex0().locator('.set:not(.warm) >> nth=0').evaluate((e) => e.classList.contains('pr')));
+      assert.ok(await ex0().locator('.set:not(.warm) >> nth=0').evaluate((e) => e.classList.contains('rec')));
+      // A medalha não muda o layout da série: continua em grade, igual às outras.
+      assert.equal(await ex0().locator('.set:not(.warm) >> nth=0').evaluate((e) => getComputedStyle(e).display), 'grid');
+      const w = (i) => ex0().locator('.set:not(.warm)').nth(i).locator('.fld').first().evaluate((e) => Math.round(e.getBoundingClientRect().width));
+      assert.equal(await w(0), await w(1));
       // Mesma carga com menos reps não é recorde.
       await mark(ex0(), 1, '60', '6');
-      assert.equal(await ex0().locator('.set:not(.warm) >> nth=1').evaluate((e) => e.classList.contains('pr')), false);
+      assert.equal(await ex0().locator('.set:not(.warm) >> nth=1').evaluate((e) => e.classList.contains('rec')), false);
       await ex0().locator('.hbtn').click();
       assert.match(await p.locator('.hist li', { hasText: 'semana 1 ·' }).textContent(), /💪 Dormi bem/);
       await p.click('.tipbox >> text=Fechar');
@@ -763,13 +767,17 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.ok(await s0.locator('.fld >> nth=0').evaluate((e) => e.classList.contains('sug')));
       await s0.locator('.ck').click();
       assert.equal(await s0.locator('input >> nth=0').inputValue(), '62.5');
+      // Depois de marcar uma série hoje, as próximas não mostram mais a sugestão.
+      await p.click('.tab >> nth=1'); await p.click('.tab >> nth=0');
+      assert.equal(await ex0().locator('.set:not(.warm) >> nth=1 >> .fld.sug').count(), 0);
       // Incremento ajustável na calculadora de anilhas.
       await tool(p, '#bplates');
       await p.selectOption('.pl select[aria-label="Incremento da sugestão de carga"]', '5');
       await p.click('.pl >> text=Fechar');
+      // Incremento novo: a dica passa a sugerir 60 + 5.
       await p.click('#wnext');
       await p.click('#wprev');
-      assert.equal(await ex0().locator('.set:not(.warm) >> nth=1 >> input >> nth=0').getAttribute('placeholder'), '65');
+      assert.equal(await ex0().locator('.tag.tec', { hasText: 'Bateu' }).textContent(), '↑ Bateu 8 reps em todas: tente 65 kg ⓘ');
       // Resumo da semana no Progresso.
       await p.click('#bprog');
       assert.deepEqual(await p.locator('#weekkpis b').allTextContents(), ['2', '1.335 kg', '1', '4 / 5']);
@@ -849,6 +857,20 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.waitForFunction(() => document.getElementById('freshnote').hidden);
       await p.reload();
       assert.equal(await p.isVisible('#freshnote'), false);
+      await ctx.close();
+    });
+
+    await t.test('cartão "Como foi o treino?" aparece uma vez só, mesmo redesenhando a lista', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      const ex0 = p.locator('.ex >> nth=0');
+      for (const i of [0, 1]) { const r = ex0.locator('.set:not(.warm)').nth(i); await r.locator('input').nth(0).fill('60'); await r.locator('input').nth(1).fill('8'); await r.locator('.ck').click(); }
+      // Redesenha a lista de várias formas: trocar a variação, trocar de dia e voltar, editar e concluir.
+      await p.locator('.ex >> nth=1 >> .chip >> nth=1').click();
+      await p.click('.tab >> nth=1'); await p.click('.tab >> nth=0');
+      await p.click('#bedit'); await p.click('#bedit');
+      assert.equal(await p.locator('.sess').count(), 1);
+      assert.equal(await p.locator('#sess').count(), 1);
       await ctx.close();
     });
 
