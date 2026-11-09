@@ -1,5 +1,11 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.3.4', date: '2026-11-09', items: [
+    'Aquecimento puxa a última vez: os campos A1, A2… mostram em cinza a carga e as reps do aquecimento da última sessão.',
+    '"Preencher com as cargas da última vez" agora preenche o aquecimento também.',
+    'O histórico do exercício (📈) mostra o aquecimento de cada sessão, separado das séries válidas (fora do 1RM e dos recordes).',
+    'Correção: o histórico mostrava "+— kg" quando a evolução era zero.'
+  ] },
   { version: 'v0.3.3', date: '2026-11-09', items: [
     'Cada técnica da última série tem sua cor: Falha vermelha, LLPs roxa, Myo-reps laranja, Drop set azul-petróleo, Alongamento estático dourada.',
     'A última série fica destacada na cor da técnica (fundo, borda, etiqueta e ✓), e a etiqueta "Última série" e o glossário usam a mesma cor.',

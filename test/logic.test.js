@@ -400,3 +400,28 @@ test('toCSV: uma linha por série, com aquecimento, energia e nota escapadas', (
   assert.equal(lines[2], '2026-11-03;1;Upper;"Supino; reto";valida;1;62,5;8;sim;;');
   assert.equal(lines.length, 3);
 });
+
+test('lastWarmFor: aquecimento da última sessão que teve aquecimento', () => {
+  const logs = {
+    '1-upper': log(1, 'upper', 100, { o0: { used: 'Supino', warm: { 0: { kg: '20', reps: '10' }, 1: { kg: '30', reps: '5' } }, sets: { 0: set('40', '8') } } }),
+    '2-upper': log(2, 'upper', 300, { o0: { used: 'Supino', sets: { 0: set('42.5', '8') } } }), // sem aquecimento registrado
+    '3-upper': log(3, 'upper', 500, { o0: { used: 'Supino', warm: { 0: { kg: '25', reps: '8' } }, sets: {} } }),
+  };
+  assert.deepEqual(CG.lastWarmFor(logs, 'Supino', '4-upper'), { 0: { kg: '25', reps: '8' } });
+  assert.deepEqual(CG.lastWarmFor(logs, 'Supino', '3-upper'), { 0: { kg: '20', reps: '10' }, 1: { kg: '30', reps: '5' } });
+  assert.equal(CG.lastWarmFor(logs, 'Outro', 'x'), null);
+});
+
+test('exerciseHistory: traz o aquecimento de cada sessão, fora do 1RM', () => {
+  const logs = {
+    '1-upper': log(1, 'upper', 100, { o0: { used: 'Supino', warm: { 1: { kg: '30', reps: '5' }, 0: { kg: '20', reps: '10' } }, sets: { 0: set('40', '8') } } }),
+    '2-upper': log(2, 'upper', 200, { o0: { used: 'Supino', warm: { 0: { kg: '22,5', reps: '10' } }, sets: {} } }),
+  };
+  const h = CG.exerciseHistory(logs, 'Supino');
+  assert.deepEqual(h[1].warm, [{ kg: '20', reps: '10' }, { kg: '30', reps: '5' }]);
+  assert.equal(h[1].best, 50.7);
+  // Sessão só com aquecimento aparece, com 1RM 0 (não conta).
+  assert.deepEqual(h[0].warm, [{ kg: '22,5', reps: '10' }]);
+  assert.deepEqual(h[0].sets, []);
+  assert.equal(h[0].best, 0);
+});

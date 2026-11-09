@@ -11,11 +11,11 @@
     '.hist ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}' +
     '.hist li{border-top:1px solid var(--line);padding-top:8px}.hist li small{color:var(--mute)}' +
     '.hist .ss{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.hist .ss span{background:var(--field);border-radius:6px;padding:3px 7px;font-size:13px;font-variant-numeric:tabular-nums}' +
-    '.hist .ss span.ok{background:var(--done-bg);color:var(--done);font-weight:600}.hist ol+p{margin-top:14px;font-size:12px}';
+    '.hist .ss span.ok{background:var(--done-bg);color:var(--done);font-weight:600}.hist .ss span.w{background:transparent;border:1px dashed var(--line);color:var(--mute)}.hist .ss i{font-style:normal;color:var(--mute);font-size:12px;align-self:center}.hist ol+p{margin-top:14px;font-size:12px}';
   document.head.appendChild(css);
 
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  const kg = (v) => String(v || '—').replace('.', ',');
+  const kg = (v) => (v === 0 || v ? String(v).replace('.', ',') : '—'); // 0 é valor (ex.: +0 kg), não "vazio"
 
   function chart(points) {
     const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
@@ -48,20 +48,26 @@
     if (!h.length) {
       box.appendChild(mk('p', null, 'Ainda não há cargas registradas para este exercício.'));
     } else {
-      const first = h[h.length - 1], last = h[0], best = Math.max(...h.map((x) => x.best));
+      // 1RM e gráfico só com sessões que têm séries válidas (o aquecimento não entra).
+      const hv = h.filter((x) => x.best), first = hv[hv.length - 1] || h[h.length - 1], last = hv[0] || h[0], best = Math.max(0, ...hv.map((x) => x.best));
       const k = mk('div', 'hk');
       [[String(h.length), h.length === 1 ? 'sessão' : 'sessões'], [kg(best) + ' kg', 'melhor 1RM est.'],
         [(last.best - first.best >= 0 ? '+' : '') + kg(Math.round((last.best - first.best) * 10) / 10) + ' kg', 'desde o início']].forEach(([b, t]) => {
         const d = mk('div'); d.append(mk('b', null, b), mk('span', null, t)); k.appendChild(d);
       });
       box.appendChild(k);
-      if (h.length > 1) box.appendChild(chart(h.slice().reverse()));
+      if (hv.length > 1) box.appendChild(chart(hv.slice().reverse()));
       const ol = mk('ol');
       h.forEach((x) => {
         const li = mk('li');
         li.appendChild(mk('small', null, (x.t ? new Date(x.t).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' }) : 'sem data') +
           ' · semana ' + x.week + ' · ' + (v.NAMES[x.day] || x.day) + (x.best ? ' · 1RM est. ' + kg(x.best) + ' kg' : '')));
         const ss = mk('div', 'ss');
+        if (x.warm && x.warm.length) {
+          ss.appendChild(mk('i', null, 'aquec.'));
+          x.warm.forEach((s) => ss.appendChild(mk('span', 'w', kg(s.kg) + ' × ' + (s.reps || '—'))));
+          if (x.sets.length) ss.appendChild(mk('i', null, 'válidas'));
+        }
         x.sets.forEach((s) => ss.appendChild(mk('span', s.done ? 'ok' : null, kg(s.kg) + ' × ' + (s.reps || '—'))));
         li.appendChild(ss);
         if (x.energy || x.note) li.appendChild(mk('small', null, (x.energy ? ['😫', '😕', '😐', '🙂', '💪'][x.energy - 1] + ' ' : '') + (x.note || '')));

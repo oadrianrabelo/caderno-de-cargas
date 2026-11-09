@@ -2,6 +2,13 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.3.4 (2026-11-09)
+
+- Aquecimento puxa a última vez: os campos A1, A2… mostram em cinza a carga e as reps do aquecimento da última sessão.
+- "Preencher com as cargas da última vez" agora preenche o aquecimento também.
+- O histórico do exercício (📈) mostra o aquecimento de cada sessão, separado das séries válidas (fora do 1RM e dos recordes).
+- Correção: o histórico mostrava "+— kg" quando a evolução era zero.
+
 ## v0.3.3 (2026-11-09)
 
 - Cada técnica da última série tem sua cor: Falha vermelha, LLPs roxa, Myo-reps laranja, Drop set azul-petróleo, Alongamento estático dourada.

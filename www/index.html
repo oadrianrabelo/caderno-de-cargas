@@ -341,8 +341,10 @@ function setRow(ex, i, s, used, last, doc, det) {
 }
 
 // Série de aquecimento: só carga e repetições, não conta no progresso nem na "última carga".
-function warmRow(ex, a, used, doc) {
+function warmRow(ex, a, used, doc, lastWarm) {
   const cur = (doc.ex[ex.id] && doc.ex[ex.id].warm && doc.ex[ex.id].warm[a]) || {};
+  // Números cinza: o aquecimento da última vez (mesma série de aquecimento).
+  const prev = (lastWarm && lastWarm[a]) || {};
   const row = mk('div', 'set warm');
   row.appendChild(mk('div', 'sl', 'A' + (a + 1)));
   const write = (patch) => {
@@ -353,11 +355,11 @@ function warmRow(ex, a, used, doc) {
     touch(doc);
   };
   const f1 = mk('div', 'fld'), kg = mk('input');
-  kg.type = 'number'; kg.inputMode = 'decimal'; kg.step = '0.5'; kg.min = '0'; kg.value = cur.kg || ''; kg.placeholder = '0';
+  kg.type = 'number'; kg.inputMode = 'decimal'; kg.step = '0.5'; kg.min = '0'; kg.value = cur.kg || ''; kg.placeholder = prev.kg ? String(prev.kg) : '0';
   kg.setAttribute('aria-label', 'Carga, aquecimento ' + (a + 1) + ', ' + used);
   f1.append(kg, mk('small', null, 'kg'));
   const f2 = mk('div', 'fld'), rp = mk('input');
-  rp.type = 'number'; rp.inputMode = 'numeric'; rp.step = '1'; rp.min = '0'; rp.value = cur.reps || ''; rp.placeholder = '0';
+  rp.type = 'number'; rp.inputMode = 'numeric'; rp.step = '1'; rp.min = '0'; rp.value = cur.reps || ''; rp.placeholder = prev.reps ? String(prev.reps) : '0';
   rp.setAttribute('aria-label', 'Repetições, aquecimento ' + (a + 1) + ', ' + used);
   f2.append(rp, mk('small', null, 'rep'));
   kg.addEventListener('input', () => write({ kg: kg.value }));
@@ -490,7 +492,8 @@ function renderList() {
     const nWarm = CG.warmCount(det.aq);
     if (nWarm) {
       sets.appendChild(mk('div', 'wlab', 'Aquecimento'));
-      for (let a = 0; a < nWarm; a++) sets.appendChild(warmRow(ex, a, used, doc));
+      const lastWarm = CG.lastWarmFor(logs, used, k);
+      for (let a = 0; a < nWarm; a++) sets.appendChild(warmRow(ex, a, used, doc, lastWarm));
       sets.appendChild(mk('div', 'wlab', 'Séries válidas'));
     }
     for (let s = 0; s < ex.s; s++) sets.appendChild(setRow(ex, i, s, used, last, doc, det));

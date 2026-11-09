@@ -74,6 +74,21 @@
     return best ? best.sets : null;
   }
 
+  // Aquecimento da execução mais recente do exercício `name` que tenha aquecimento registrado (ignora `exceptKey`).
+  function lastWarmFor(logs, name, exceptKey) {
+    let best = null;
+    for (const k in logs) {
+      if (k === exceptKey || !logs[k] || !logs[k].ex) continue;
+      for (const id in logs[k].ex) {
+        const x = logs[k].ex[id];
+        if (!x || x.used !== name || !x.warm) continue;
+        if (!Object.values(x.warm).some((s) => s && (s.kg || s.reps))) continue;
+        if (!best || (logs[k].t || 0) > best.t) best = { t: logs[k].t || 0, warm: x.warm };
+      }
+    }
+    return best ? best.warm : null;
+  }
+
   // Um treino conta como "feito" com pelo menos uma série marcada; "pulado" quando o usuário pulou.
   const dayStatus = (l) => (!l ? '' : hasDoneSet(l) ? 'done' : l.skip ? 'skip' : '');
 
@@ -173,8 +188,10 @@
         if (!x || x.used !== name) continue;
         const sets = Object.keys(x.sets || {}).sort((a, b) => a - b).map((i) => x.sets[i]).filter((s) => s && (s.kg || s.reps))
           .map((s) => ({ kg: s.kg, reps: s.reps, done: !!s.done }));
-        if (!sets.length) continue;
-        out.push({ t: l.t || 0, week: l.week, day: l.day, sets, best: Math.max(...sets.map((s) => e1rm(s.kg, s.reps))), note: l.note || '', energy: l.energy || 0 });
+        const warm = Object.keys(x.warm || {}).sort((a, b) => a - b).map((i) => x.warm[i]).filter((s) => s && (s.kg || s.reps))
+          .map((s) => ({ kg: s.kg, reps: s.reps }));
+        if (!sets.length && !warm.length) continue;
+        out.push({ t: l.t || 0, week: l.week, day: l.day, sets, warm, best: sets.length ? Math.max(...sets.map((s) => e1rm(s.kg, s.reps))) : 0, note: l.note || '', energy: l.energy || 0 });
       }
     }
     return out.sort((a, b) => b.t - a.t);
@@ -346,7 +363,7 @@
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, suggestNext, weekStart, weekSummary, lastNote, volumeByWeek, preferredVariant, toCSV, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, lastWarmFor, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, suggestNext, weekStart, weekSummary, lastNote, volumeByWeek, preferredVariant, toCSV, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -906,6 +906,42 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
+    await t.test('aquecimento puxa a última vez, entra no Preencher e aparece no histórico', async () => {
+      const det = { type: 'caderno-detalhes', v: 1, extra: { 1: { upper: [{ aq: '2' }] }, 2: { upper: [{ aq: '2' }] } } };
+      const file = path.join(os.tmpdir(), 'cg-e2e-warm-' + process.pid + '.json');
+      fs.writeFileSync(file, JSON.stringify(det));
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      await p.setInputFiles('#fimp', file);
+      await p.waitForFunction(() => document.getElementById('status').textContent === 'Detalhes do programa importados');
+      const ex0 = () => p.locator('.ex >> nth=0');
+      const w = (i) => ex0().locator('.set.warm').nth(i);
+      await w(0).locator('input >> nth=0').fill('20'); await w(0).locator('input >> nth=1').fill('10');
+      await w(1).locator('input >> nth=0').fill('30'); await w(1).locator('input >> nth=1').fill('5');
+      const s0 = ex0().locator('.set:not(.warm) >> nth=0');
+      await s0.locator('input >> nth=0').fill('40'); await s0.locator('input >> nth=1').fill('7'); await s0.locator('.ck').click();
+      // Semana 2: os números cinza do aquecimento são os da semana 1.
+      await p.click('#wnext');
+      assert.equal(await w(0).locator('input >> nth=0').getAttribute('placeholder'), '20');
+      assert.equal(await w(0).locator('input >> nth=1').getAttribute('placeholder'), '10');
+      assert.equal(await w(1).locator('input >> nth=0').getAttribute('placeholder'), '30');
+      // "Preencher" inclui o aquecimento.
+      await p.click('#brepeat');
+      assert.equal(await w(1).locator('input >> nth=0').inputValue(), '30');
+      assert.equal(await w(1).locator('input >> nth=1').inputValue(), '5');
+      assert.equal(await s0.locator('input >> nth=0').inputValue(), '40');
+      await w(1).locator('input >> nth=0').fill('32.5');
+      await s0.locator('.ck').click();
+      // Histórico: aquecimento separado das válidas, fora do 1RM.
+      await ex0().locator('.hbtn').click();
+      assert.deepEqual(await p.locator('.hist li >> nth=0 >> .ss span.w').allTextContents(), ['20 × 10', '32,5 × 5']);
+      assert.deepEqual(await p.locator('.hist li >> nth=1 >> .ss span.w').allTextContents(), ['20 × 10', '30 × 5']);
+      assert.deepEqual(await p.locator('.hist li >> nth=0 >> .ss span.ok').allTextContents(), ['40 × 7']);
+      assert.deepEqual(await p.locator('.hist .hk b').allTextContents(), ['2', '49,3 kg', '+0 kg']);
+      fs.unlinkSync(file);
+      await ctx.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {

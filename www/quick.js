@@ -8,7 +8,7 @@
   const rep = document.createElement('button'); rep.type = 'button'; rep.className = 'btn'; rep.id = 'brepeat';
   rep.textContent = '↺ Preencher com as cargas da última vez'; rep.hidden = true; rep.style.width = '100%'; rep.style.marginBottom = '12px';
   list.before(rep);
-  const rows = () => [...list.querySelectorAll('.set:not(.warm)')];
+  const rows = () => [...list.querySelectorAll('.set')]; // séries válidas e aquecimento
   function refresh() {
     const rs = rows(), editing = !!list.querySelector('.ed');
     const anyFilled = rs.some((r) => [...r.querySelectorAll('input')].some((i) => i.value));
