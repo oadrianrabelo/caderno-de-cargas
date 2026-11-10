@@ -18,13 +18,13 @@
   // Para ordenar os treinos: hora da última série marcada; treinos antigos (sem horário) usam a última alteração.
   function sessionTime(l) { const a = doneAts(l); return a.length ? Math.max(...a) : (l && l.t) || 0; }
   // Dia do treino (AAAA-MM-DD): data corrigida à mão > dia da primeira série marcada >
-  // dia em que o treino foi aberto (treinos antigos, sem horário nas séries) > dia da última alteração.
+  // dia da última alteração (treinos antigos, sem horário nas séries; o dia em que o treino foi aberto
+  // não serve, porque muitas vezes ele foi aberto antes, só para ver).
   function sessionDay(l) {
     if (!l) return '';
     if (l.when && ISO.test(l.when)) return l.when;
     const a = doneAts(l);
     if (a.length) return isoDay(Math.min(...a));
-    if (!l.skip && l.date && ISO.test(l.date) && (!l.t || l.date <= isoDay(l.t))) return l.date;
     return l.t ? isoDay(l.t) : '';
   }
 

@@ -1,5 +1,9 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.3.6', date: '2026-11-10', items: [
+    'Correção: treinos antigos (antes da v0.2.7, sem horário nas séries) voltam a usar o dia da última alteração no calendário; o dia em que foram abertos não era confiável. Se algum estiver no dia errado, corrija em "Como foi o treino? → Data do treino · Alterar".',
+    'Desmarcar e marcar de novo uma série mantém o horário original, então o treino não muda de dia.'
+  ] },
   { version: 'v0.3.5', date: '2026-11-10', items: [
     'Correção: o calendário marcava o treino no dia da última alteração, e não no dia em que foi feito (um treino editado no dia seguinte "pulava" de dia). Agora vale o horário das séries marcadas.',
     'Correção: editar um treino antigo não muda mais qual é o próximo treino nem a "última vez" das cargas.',

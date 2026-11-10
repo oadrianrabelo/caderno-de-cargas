@@ -440,9 +440,10 @@ test('dia e ordem do treino não mudam se ele for editado depois', () => {
   // O próximo treino continua sendo depois do Lower (o último feito), não depois do Upper editado.
   assert.deepEqual(CG.pickStart(logs), { week: 1, day: 'pull' });
   assert.equal(CG.summarize(logs).last.day, 'lower');
-  // Treino antigo (sem horário nas séries) usa o dia em que foi aberto; data corrigida à mão vence tudo.
+  // Treino antigo (sem horário nas séries): dia da última alteração (o dia em que foi aberto não é confiável).
   const old = { week: 1, day: 'upper', date: '2026-10-27', t: new Date(2026, 9, 28, 10).getTime(), ex: { o0: { used: 'A', sets: { 0: { kg: '1', reps: '1', done: true } } } } };
-  assert.equal(CG.sessionDay(old), '2026-10-27');
+  assert.equal(CG.sessionDay(old), '2026-10-28');
+  // Data corrigida à mão vence tudo.
   assert.equal(CG.sessionDay(Object.assign({}, old, { when: '2026-10-26' })), '2026-10-26');
   // Pulado: o dia do pulo (t), não o dia em que foi aberto.
   assert.equal(CG.sessionDay({ week: 1, day: 'legs', date: '2026-10-20', t: tue, ex: {}, skip: true }), '2026-11-03');

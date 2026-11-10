@@ -328,7 +328,8 @@ function setRow(ex, i, s, used, last, doc, det) {
     }
     const nd = !now.done;
     // at: hora em que a série foi marcada (duração do treino).
-    write(nd ? { kg: kg.value, reps: rp.value, done: true, at: Date.now() } : { kg: kg.value, reps: rp.value, done: false });
+    // Desmarcar e marcar de novo mantém o horário original (não muda o dia do treino).
+    write(nd ? { kg: kg.value, reps: rp.value, done: true, at: now.at || Date.now() } : { kg: kg.value, reps: rp.value, done: false });
     // Série feita: começa o descanso do exercício (não na última série do último exercício).
     if (nd && window.CGTimer) CGTimer.start(CG.restSeconds(ex.t), used);
     if (nd && window.CGWake) CGWake.on();

@@ -954,6 +954,11 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.fill('#sessdate input[type=date]', yesterday);
       await p.waitForFunction((d) => CGApp.view().doc.when === d, yesterday);
       assert.deepEqual(await p.evaluate(() => CG.calendar(CGApp.view().logs)), { [yesterday]: 'done' });
+      // Desmarcar e marcar de novo mantém o horário da série.
+      const at0 = await p.evaluate(() => CGApp.view().doc.ex.o0.sets[0].at);
+      await p.evaluate(() => { const real = Date.now; Date.now = () => real() + 2 * 86400000; });
+      await r.locator('.ck').click(); await r.locator('.ck').click();
+      assert.equal(await p.evaluate(() => CGApp.view().doc.ex.o0.sets[0].at), at0);
       // Editar o treino depois (anotação) não muda o dia nem o próximo treino.
       await p.fill('#sess textarea', 'anotado depois');
       await p.waitForFunction(() => document.getElementById('status').textContent === 'Salvo');

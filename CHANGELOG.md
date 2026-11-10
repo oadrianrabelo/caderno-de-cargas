@@ -2,6 +2,11 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.3.6 (2026-11-10)
+
+- Correção: treinos antigos (antes da v0.2.7, sem horário nas séries) voltam a usar o dia da última alteração no calendário; o dia em que foram abertos não era confiável. Se algum estiver no dia errado, corrija em "Como foi o treino? → Data do treino · Alterar".
+- Desmarcar e marcar de novo uma série mantém o horário original, então o treino não muda de dia.
+
 ## v0.3.5 (2026-11-10)
 
 - Correção: o calendário marcava o treino no dia da última alteração, e não no dia em que foi feito (um treino editado no dia seguinte "pulava" de dia). Agora vale o horário das séries marcadas.
