@@ -2,6 +2,13 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.3.5 (2026-11-10)
+
+- Correção: o calendário marcava o treino no dia da última alteração, e não no dia em que foi feito (um treino editado no dia seguinte "pulava" de dia). Agora vale o horário das séries marcadas.
+- Correção: editar um treino antigo não muda mais qual é o próximo treino nem a "última vez" das cargas.
+- O cartão "Como foi o treino?" mostra a data do treino com "Alterar", para corrigir quando você registrou o treino em outro dia.
+- O histórico do exercício (📈) mostra a data em que o treino foi feito.
+
 ## v0.3.4 (2026-11-09)
 
 - Aquecimento puxa a última vez: os campos A1, A2… mostram em cinza a carga e as reps do aquecimento da última sessão.

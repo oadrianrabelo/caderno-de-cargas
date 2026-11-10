@@ -60,7 +60,8 @@
       const ol = mk('ol');
       h.forEach((x) => {
         const li = mk('li');
-        li.appendChild(mk('small', null, (x.t ? new Date(x.t).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' }) : 'sem data') +
+        const dd = x.date ? new Date(x.date + 'T12:00:00') : x.t ? new Date(x.t) : null;
+        li.appendChild(mk('small', null, (dd ? dd.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' }) : 'sem data') +
           ' · semana ' + x.week + ' · ' + (v.NAMES[x.day] || x.day) + (x.best ? ' · 1RM est. ' + kg(x.best) + ' kg' : '')));
         const ss = mk('div', 'ss');
         if (x.warm && x.warm.length) {

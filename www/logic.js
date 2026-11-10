@@ -8,6 +8,26 @@
   const parse = (s, d) => { try { const v = JSON.parse(s); return v && typeof v === 'object' ? v : d; } catch (e) { return d; } };
   const hasDoneSet = (l) => Object.values(l.ex || {}).some((x) => Object.values(x.sets || {}).some((s) => s && s.done));
 
+  // Quando o treino foi feito, sem depender de edições feitas depois (t muda a cada alteração).
+  const ISO = /^\d{4}-\d{2}-\d{2}$/;
+  const doneAts = (l) => {
+    const a = [];
+    Object.values((l && l.ex) || {}).forEach((x) => Object.values((x && x.sets) || {}).forEach((st) => { if (st && st.done && st.at) a.push(st.at); }));
+    return a;
+  };
+  // Para ordenar os treinos: hora da última série marcada; treinos antigos (sem horário) usam a última alteração.
+  function sessionTime(l) { const a = doneAts(l); return a.length ? Math.max(...a) : (l && l.t) || 0; }
+  // Dia do treino (AAAA-MM-DD): data corrigida à mão > dia da primeira série marcada >
+  // dia em que o treino foi aberto (treinos antigos, sem horário nas séries) > dia da última alteração.
+  function sessionDay(l) {
+    if (!l) return '';
+    if (l.when && ISO.test(l.when)) return l.when;
+    const a = doneAts(l);
+    if (a.length) return isoDay(Math.min(...a));
+    if (!l.skip && l.date && ISO.test(l.date) && (!l.t || l.date <= isoDay(l.t))) return l.date;
+    return l.t ? isoDay(l.t) : '';
+  }
+
   function baseList(P, w, d) { return P[w][d].map((e, i) => ({ id: 'o' + i, n: e.n, s: e.s, r: e.r, t: e.t, a: e.a })); }
 
   // Aquecimento, RPE e técnica da última série de um exercício. O que foi editado no exercício vale;
@@ -68,7 +88,7 @@
         const x = logs[k].ex[id];
         if (!x || x.used !== name) continue;
         if (!Object.values(x.sets || {}).some((s) => s && (s.kg || s.reps))) continue;
-        if (!best || (logs[k].t || 0) > best.t) best = { t: logs[k].t || 0, sets: x.sets };
+        if (!best || sessionTime(logs[k]) > best.t) best = { t: sessionTime(logs[k]), sets: x.sets };
       }
     }
     return best ? best.sets : null;
@@ -83,7 +103,7 @@
         const x = logs[k].ex[id];
         if (!x || x.used !== name || !x.warm) continue;
         if (!Object.values(x.warm).some((s) => s && (s.kg || s.reps))) continue;
-        if (!best || (logs[k].t || 0) > best.t) best = { t: logs[k].t || 0, warm: x.warm };
+        if (!best || sessionTime(logs[k]) > best.t) best = { t: sessionTime(logs[k]), warm: x.warm };
       }
     }
     return best ? best.warm : null;
@@ -105,7 +125,7 @@
     for (const k in logs) {
       const l = logs[k];
       if (!l || !l.t || !dayStatus(l) || order.indexOf(l.day) < 0) continue;
-      if (!latest || l.t > latest.t) latest = l;
+      if (!latest || sessionTime(l) > sessionTime(latest)) latest = l;
     }
     return latest ? nextDay(latest.week, latest.day, order, lastWeek) : null;
   }
@@ -126,12 +146,12 @@
   // Resumo do programa: treinos feitos, pulados, total previsto, último treino e sequência atual sem pular.
   function summarize(logs, order = ORDER, weeks = LAST_WEEK) {
     const mine = Object.values(logs).filter((l) => l && l.t && order.indexOf(l.day) >= 0 && l.week >= 1 && l.week <= weeks && dayStatus(l));
-    mine.sort((a, b) => a.t - b.t);
+    mine.sort((a, b) => sessionTime(a) - sessionTime(b));
     const done = mine.filter((l) => dayStatus(l) === 'done');
     let streak = 0;
     for (let i = mine.length - 1; i >= 0 && dayStatus(mine[i]) === 'done'; i--) streak++;
     const last = done.length ? done[done.length - 1] : null;
-    return { done: done.length, skipped: mine.length - done.length, total: order.length * weeks, streak, last: last ? { t: last.t, week: last.week, day: last.day } : null };
+    return { done: done.length, skipped: mine.length - done.length, total: order.length * weeks, streak, last: last ? { t: sessionTime(last), date: sessionDay(last), week: last.week, day: last.day } : null };
   }
 
   // Situação de cada dia do calendário (pela data em que o treino foi feito ou pulado): 'done' vence 'skip'.
@@ -140,7 +160,7 @@
     for (const k in logs) {
       const l = logs[k], st = dayStatus(l);
       if (!st || !l.t) continue;
-      const d = isoDay(l.t);
+      const d = sessionDay(l);
       if (out[d] !== 'done') out[d] = st;
     }
     return out;
@@ -163,7 +183,7 @@
           const p = { kg: num(s.kg), reps: num(s.reps) };
           if (!best || p.kg > best.kg || (p.kg === best.kg && p.reps > best.reps)) best = p;
         }
-        if (best) (by[x.used] = by[x.used] || []).push({ t: l.t || 0, kg: best.kg, reps: best.reps });
+        if (best) (by[x.used] = by[x.used] || []).push({ t: sessionTime(l), kg: best.kg, reps: best.reps });
       }
     }
     return Object.keys(by).map((name) => ({ name, points: by[name].sort((a, b) => a.t - b.t) }))
@@ -191,7 +211,7 @@
         const warm = Object.keys(x.warm || {}).sort((a, b) => a - b).map((i) => x.warm[i]).filter((s) => s && (s.kg || s.reps))
           .map((s) => ({ kg: s.kg, reps: s.reps }));
         if (!sets.length && !warm.length) continue;
-        out.push({ t: l.t || 0, week: l.week, day: l.day, sets, warm, best: sets.length ? Math.max(...sets.map((s) => e1rm(s.kg, s.reps))) : 0, note: l.note || '', energy: l.energy || 0 });
+        out.push({ t: sessionTime(l), date: sessionDay(l), week: l.week, day: l.day, sets, warm, best: sets.length ? Math.max(...sets.map((s) => e1rm(s.kg, s.reps))) : 0, note: l.note || '', energy: l.energy || 0 });
       }
     }
     return out.sort((a, b) => b.t - a.t);
@@ -255,12 +275,13 @@
     let sessions = 0, sets = 0, vol = 0, records = 0;
     const energy = [];
     all.forEach(([k, l]) => {
-      if (l.t < a || l.t >= z || dayStatus(l) !== 'done') return;
+      const day = sessionDay(l);
+      if (day < isoDay(a) || day > isoDay(z - 1) || dayStatus(l) !== 'done') return;
       sessions++;
       if (l.energy) energy.push(l.energy);
       // Recordes contra as sessões anteriores a esta.
       const before = {};
-      all.forEach(([k2, l2]) => { if (k2 !== k && l2.t < l.t) before[k2] = l2; });
+      all.forEach(([k2, l2]) => { if (k2 !== k && sessionTime(l2) < sessionTime(l)) before[k2] = l2; });
       Object.values(l.ex).forEach((x) => Object.values((x && x.sets) || {}).forEach((st) => {
         if (!st || !st.done) return;
         sets++; vol += num(st.kg) * num(st.reps);
@@ -276,7 +297,7 @@
     for (const k in logs) {
       const l = logs[k];
       if (k === exceptKey || !l || l.day !== day || !(l.note || l.energy) || !l.t) continue;
-      if (!best || l.t > best.t) best = { t: l.t, week: l.week, note: l.note || '', energy: l.energy || 0 };
+      if (!best || sessionTime(l) > best.t) best = { t: sessionTime(l), week: l.week, note: l.note || '', energy: l.energy || 0 };
     }
     return best;
   }
@@ -299,7 +320,7 @@
       if (k === exceptKey || !l || l.day !== day || !l.ex || !l.ex[exId] || !l.t) continue;
       const x = l.ex[exId];
       if (!x.used || !Object.values(x.sets || {}).some((s) => s && (s.kg || s.reps))) continue;
-      if (!best || l.t > best.t) best = { t: l.t, used: x.used };
+      if (!best || sessionTime(l) > best.t) best = { t: sessionTime(l), used: x.used };
     }
     return best && options.indexOf(best.used) >= 0 ? best.used : null;
   }
@@ -308,8 +329,8 @@
   function toCSV(logs, names) {
     const q = (v) => { const s = String(v == null ? '' : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     const rows = [['data', 'semana', 'dia', 'exercicio', 'tipo', 'serie', 'kg', 'reps', 'feita', 'energia', 'anotacao']];
-    Object.values(logs).filter((l) => l && l.ex && l.t).sort((a, b) => a.t - b.t).forEach((l) => {
-      const d = isoDay(l.t), dn = (names && names[l.day]) || l.day;
+    Object.values(logs).filter((l) => l && l.ex && l.t).sort((a, b) => sessionTime(a) - sessionTime(b)).forEach((l) => {
+      const d = sessionDay(l), dn = (names && names[l.day]) || l.day;
       let first = true;
       Object.values(l.ex).forEach((x) => {
         if (!x) return;
@@ -363,7 +384,7 @@
     return 'caderno-de-cargas-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.json';
   }
 
-  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, lastWarmFor, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, suggestNext, weekStart, weekSummary, lastNote, volumeByWeek, preferredVariant, toCSV, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
+  const CG = { ORDER, LAST_WEEK, parse, baseList, exDetails, warmCount, lastWarmFor, sessionTime, sessionDay, restSeconds, progressHint, editList, lastFor, dayStatus, nextDay, pickStart, copyToNextWeeks, isoDay, summarize, calendar, exerciseProgress, e1rm, exerciseHistory, sessionDuration, isRecord, plates, suggestNext, weekStart, weekSummary, lastNote, volumeByWeek, preferredVariant, toCSV, newId, makeProgram, serializeBackup, parseBackup, parseDetails, backupFileName };
   if (typeof module !== 'undefined' && module.exports) module.exports = CG;
   else root.CG = CG;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

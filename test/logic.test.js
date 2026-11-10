@@ -9,7 +9,8 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'u
 const P = JSON.parse(html.match(/^const P = (\{.*\});$/m)[1]);
 
 const set = (kg, reps, done = true) => ({ kg, reps, done });
-const log = (week, day, t, ex) => ({ week, day, date: '2026-01-01', t, ex });
+// Sem `date`: o dia vem das séries marcadas (at) ou da última alteração (t).
+const log = (week, day, t, ex) => ({ week, day, t, ex });
 
 test('pickStart: sem treinos feitos não muda o dia', () => {
   assert.equal(CG.pickStart({}), null);
@@ -125,7 +126,7 @@ test('backupFileName: usa a data local', () => {
   assert.equal(CG.backupFileName(new Date(2026, 0, 5)), 'caderno-de-cargas-2026-01-05.json');
 });
 
-const skipped = (week, day, t) => ({ week, day, date: '2026-01-01', t, ex: {}, skip: true });
+const skipped = (week, day, t) => ({ week, day, t, ex: {}, skip: true });
 
 test('pular: um treino pulado conta para escolher o próximo dia', () => {
   const logs = {
@@ -165,7 +166,7 @@ test('summarize: feitos, pulados, total, último treino e sequência sem pular',
     '1-push': log(1, 'push', 400, { o0: { used: 'D', sets: { 0: set('30', '10') } } }),
     '1-legs': log(1, 'legs', 0, {}), // só aberto, sem nada feito
   };
-  assert.deepEqual(CG.summarize(logs), { done: 3, skipped: 1, total: 60, streak: 2, last: { t: 400, week: 1, day: 'push' } });
+  assert.deepEqual(CG.summarize(logs), { done: 3, skipped: 1, total: 60, streak: 2, last: { t: 400, date: CG.isoDay(400), week: 1, day: 'push' } });
   assert.deepEqual(CG.summarize({}), { done: 0, skipped: 0, total: 60, streak: 0, last: null });
 });
 
@@ -424,4 +425,25 @@ test('exerciseHistory: traz o aquecimento de cada sessão, fora do 1RM', () => {
   assert.deepEqual(h[0].warm, [{ kg: '22,5', reps: '10' }]);
   assert.deepEqual(h[0].sets, []);
   assert.equal(h[0].best, 0);
+});
+
+test('dia e ordem do treino não mudam se ele for editado depois', () => {
+  const tue = new Date(2026, 10, 3, 19).getTime(), wed = new Date(2026, 10, 4, 19).getTime(), thu = new Date(2026, 10, 5, 12).getTime();
+  const at = (t) => ({ kg: '60', reps: '8', done: true, at: t });
+  const logs = {
+    // Upper feito na terça, mas editado (anotação, troca de variação) na quinta: t = quinta.
+    '1-upper': { week: 1, day: 'upper', date: '2026-11-03', t: thu, ex: { o0: { used: 'A', sets: { 0: at(tue), 1: at(tue + 600000) } } } },
+    '1-lower': { week: 1, day: 'lower', date: '2026-11-04', t: wed + 3600000, ex: { o0: { used: 'B', sets: { 0: at(wed) } } } },
+  };
+  assert.equal(CG.sessionDay(logs['1-upper']), '2026-11-03');
+  assert.deepEqual(CG.calendar(logs), { '2026-11-03': 'done', '2026-11-04': 'done' });
+  // O próximo treino continua sendo depois do Lower (o último feito), não depois do Upper editado.
+  assert.deepEqual(CG.pickStart(logs), { week: 1, day: 'pull' });
+  assert.equal(CG.summarize(logs).last.day, 'lower');
+  // Treino antigo (sem horário nas séries) usa o dia em que foi aberto; data corrigida à mão vence tudo.
+  const old = { week: 1, day: 'upper', date: '2026-10-27', t: new Date(2026, 9, 28, 10).getTime(), ex: { o0: { used: 'A', sets: { 0: { kg: '1', reps: '1', done: true } } } } };
+  assert.equal(CG.sessionDay(old), '2026-10-27');
+  assert.equal(CG.sessionDay(Object.assign({}, old, { when: '2026-10-26' })), '2026-10-26');
+  // Pulado: o dia do pulo (t), não o dia em que foi aberto.
+  assert.equal(CG.sessionDay({ week: 1, day: 'legs', date: '2026-10-20', t: tue, ex: {}, skip: true }), '2026-11-03');
 });

@@ -58,7 +58,27 @@
     ta.value = (doc && doc.note) || ''; ta.maxLength = 1000;
     ta.addEventListener('input', () => { const d = app.doc(); d.note = ta.value; app.touch(d); });
     const du = mk('div', 'du', durText(doc)); du.id = 'sessdur';
-    box.append(en, ta, du);
+    // Data do treino (para o calendário): vem das séries marcadas; dá para corrigir se registrou outro dia.
+    const dl = mk('div', 'du'); dl.id = 'sessdate';
+    const fmtDay = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+    const drawDate = () => {
+      dl.textContent = '';
+      const cur = app.view().doc, day = cur && CG.dayStatus(cur) ? CG.sessionDay(cur) : '';
+      if (!day) return;
+      dl.append('Data do treino: ' + fmtDay(day) + ' · ');
+      const ch = mk('button', null, 'Alterar'); ch.type = 'button';
+      ch.style.cssText = 'border:0;background:none;color:var(--day,var(--accent));font:600 14px/1 var(--f-body);padding:4px 0;cursor:pointer;text-decoration:underline';
+      ch.addEventListener('click', () => {
+        const inp = mk('input'); inp.type = 'date'; inp.value = day; inp.max = CG.isoDay(Date.now()); inp.setAttribute('aria-label', 'Data do treino');
+        inp.style.cssText = 'height:40px;margin-left:6px;border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:8px;padding:0 8px';
+        inp.addEventListener('change', () => { if (!inp.value) return; const d = app.doc(); d.when = inp.value; app.touch(d); drawDate(); app.status('Data do treino: ' + fmtDay(inp.value)); });
+        ch.replaceWith(inp); inp.focus();
+      });
+      dl.appendChild(ch);
+    };
+    drawDate();
+    box._drawDate = drawDate;
+    box.append(en, ta, du, dl);
     const v = app.view(), prev = CG.lastNote(v.logs, v.day, v.week + '-' + v.day);
     if (prev) {
       const pn = mk('div', 'prevnote'); pn.id = 'prevnote';
@@ -102,6 +122,7 @@
       const wasPr = row.classList.contains('rec');
       badges();
       const du = document.getElementById('sessdur'); if (du) du.textContent = durText(app.view().doc);
+      const sc = document.getElementById('sess'); if (sc && sc._drawDate) sc._drawDate();
       // Marcou a penúltima: avisa qual técnica vem na última série.
       const next = row.nextElementSibling;
       if (row.classList.contains('done') && next && next.classList.contains('last') && !next.classList.contains('done') && window.CGTips) {

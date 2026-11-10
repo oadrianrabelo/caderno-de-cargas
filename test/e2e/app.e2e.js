@@ -942,6 +942,31 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
+    await t.test('data do treino: calendário pelo dia em que treinou e correção manual', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      // Treino de "ontem" registrado hoje: marca a série e corrige a data.
+      const r = p.locator('.ex >> nth=0 >> .set:not(.warm) >> nth=0');
+      await r.locator('input >> nth=0').fill('60'); await r.locator('input >> nth=1').fill('8'); await r.locator('.ck').click();
+      const yesterday = await p.evaluate(() => CG.isoDay(Date.now() - 86400000));
+      await p.waitForSelector('#sessdate >> text=Data do treino:');
+      await p.click('#sessdate >> text=Alterar');
+      await p.fill('#sessdate input[type=date]', yesterday);
+      await p.waitForFunction((d) => CGApp.view().doc.when === d, yesterday);
+      assert.deepEqual(await p.evaluate(() => CG.calendar(CGApp.view().logs)), { [yesterday]: 'done' });
+      // Editar o treino depois (anotação) não muda o dia nem o próximo treino.
+      await p.fill('#sess textarea', 'anotado depois');
+      await p.waitForFunction(() => document.getElementById('status').textContent === 'Salvo');
+      assert.deepEqual(await p.evaluate(() => CG.calendar(CGApp.view().logs)), { [yesterday]: 'done' });
+      await p.reload();
+      assert.equal(await p.textContent('#title'), 'Lower');
+      await p.click('#bprog');
+      // O calendário mostra o treino num dia só (ontem), não hoje.
+      assert.equal(await p.locator('#progress .cal span.done').count(), 1);
+      assert.equal(await p.locator('#progress .cal span.done.today').count(), 0);
+      await ctx.close();
+    });
+
     const real = errors.filter((e) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(e));
     assert.deepEqual(real, []);
   } finally {
