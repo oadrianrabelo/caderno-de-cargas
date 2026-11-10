@@ -8,8 +8,8 @@
     ['Dados', ['bexp', 'bimp', 'bcsv', 'bcloud']],
     ['App', ['btheme', 'bgloss', 'bnews', 'bver']]
   ];
-  // Itens que abrem outra tela: o menu fecha ao tocar neles (o Tema só alterna, então o menu fica).
-  const KEEP_OPEN = ['btheme'];
+  // Itens que abrem outra tela: o menu fecha ao tocar neles (todos abrem outra tela).
+  const KEEP_OPEN = [];
 
   const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn'; btn.id = 'bmore'; btn.textContent = 'Mais';
   btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'more');

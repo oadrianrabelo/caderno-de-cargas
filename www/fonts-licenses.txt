@@ -190,3 +190,26 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
+
+----------------------------------------------------------------------
+Fontes opcionais (Aparência), arquivos font-<id>.css: todas sob a SIL Open Font
+License 1.1 (texto acima). Subconjunto latino. Em JetBrains Mono, Lilex e Commit Mono
+o zero cortado (variante da própria fonte) virou o zero padrão. IBM Plex Mono (nome
+reservado "Plex") vai como o arquivo original da IBM, sem modificação; o zero cortado
+é ligado pelo recurso OpenType "zero" da própria fonte.
+- Space Grotesk: Copyright 2020 The Space Grotesk Project Authors
+- Manrope: Copyright 2018 The Manrope Project Authors
+- Schibsted Grotesk: Copyright 2022 The Schibsted Grotesk Project Authors
+- Hanken Grotesk: Copyright 2021 The Hanken Grotesk Project Authors
+- Sora: Copyright 2019 The Sora Project Authors
+- IBM Plex Sans / IBM Plex Mono: Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"
+- Unbounded: Copyright 2022 The Unbounded Project Authors
+- Fraunces: Copyright 2020 The Fraunces Project Authors
+- Instrument Serif: Copyright 2022 The Instrument Serif Project Authors
+- Geist Mono: Copyright 2024 The Geist Project Authors
+- JetBrains Mono: Copyright 2020 The JetBrains Mono Project Authors
+- Lilex: Copyright 2019 The Lilex Project Authors (baseada em IBM Plex Mono)
+- Commit Mono: Copyright 2023 Eigil Nikolajsen
+- Fira Code: Copyright 2014-2020 The Fira Code Project Authors
+- Martian Mono: Copyright 2021 The Martian Mono Project Authors
+- Red Hat Mono: Copyright 2021 Red Hat, Inc.

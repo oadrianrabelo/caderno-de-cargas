@@ -1,7 +1,7 @@
 // Acabamento da interface: folhas (Progresso, Nuvem, Programas, Versão, Mais) uma por vez, com fundo
 // escurecido e botão de fechar; indicador deslizante nas abas dos dias. Só comportamento visual.
 (function () {
-  const SHEETS = ['progress', 'cloud', 'programs', 'version', 'more'];
+  const SHEETS = ['progress', 'cloud', 'programs', 'version', 'look', 'more'];
   const els = () => SHEETS.map((id) => document.getElementById(id)).filter(Boolean);
 
   const scrim = document.createElement('div'); scrim.className = 'scrim'; scrim.id = 'scrim'; scrim.hidden = true;
@@ -64,5 +64,27 @@
     window.addEventListener('resize', () => place(true));
     place(true);
     const s0 = tabs.querySelector('.tab[aria-selected="true"]'); prevX = s0 ? s0.offsetLeft : null;
+  }
+  // Campos de carga e reps: o número diminui para caber (ex.: 102,5 numa fonte larga), sem cortar.
+  const list = document.getElementById('list');
+  if (list) {
+    const ctx = document.createElement('canvas').getContext('2d');
+    const fit = (inp) => {
+      inp.style.fontSize = '';
+      const cs = getComputedStyle(inp), text = inp.value || inp.placeholder || '';
+      const room = inp.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+      if (!text || room <= 0) return;
+      const base = parseFloat(cs.fontSize);
+      ctx.font = cs.fontWeight + ' ' + base + 'px ' + cs.fontFamily;
+      const w = ctx.measureText(text).width + (parseFloat(cs.letterSpacing) || 0) * text.length;
+      if (w > room) inp.style.fontSize = Math.max(14, Math.floor(base * room / w)) + 'px';
+    };
+    const fitAll = () => list.querySelectorAll('.set input').forEach(fit);
+    list.addEventListener('input', (e) => { if (e.target.matches('.set input')) fit(e.target); });
+    new MutationObserver(fitAll).observe(list, { childList: true, subtree: true, attributes: true, attributeFilter: ['placeholder'] });
+    document.addEventListener('cg:theme', () => setTimeout(fitAll, 0));
+    if (document.fonts) { document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', fitAll); document.fonts.ready.then(fitAll); }
+    window.addEventListener('resize', fitAll);
+    fitAll();
   }
 })();

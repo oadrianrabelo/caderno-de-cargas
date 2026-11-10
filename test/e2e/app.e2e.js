@@ -787,15 +787,39 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       const [img] = await Promise.all([p.waitForEvent('download').catch(() => null), p.click('#progress >> text=Imagem da semana')]);
       assert.ok(img === null || /^semana-.*\.png$/.test(img.suggestedFilename()));
       await p.click('#bprog');
-      // Tema: automático → claro → escuro, e a cor do dia acompanha.
-      assert.equal(await p.textContent('#btheme'), 'Tema: automático');
-      await tool(p, '#btheme'); await p.click('#btheme');
-      assert.equal(await p.textContent('#btheme'), 'Tema: escuro');
+      // Aparência: modo escuro, e a cor do dia acompanha.
+      assert.equal(await p.textContent('#btheme'), 'Aparência');
+      await tool(p, '#btheme');
+      await p.waitForSelector('#look:not([hidden])');
+      assert.equal(await p.isVisible('#more'), false); // o menu fecha ao abrir a Aparência
+      await p.click('#look .lseg >> text=Escuro');
       assert.equal(await p.evaluate(() => document.documentElement.dataset.theme), 'dark');
       assert.equal(await p.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(12, 13, 15)');
       assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--day').trim()), '#9bb0ec');
+      // Paleta e fontes: Ardósia, JetBrains Mono nos números, Space Grotesk nos títulos.
+      await p.click('#look [data-palette="ardosia"]');
+      assert.equal(await p.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(11, 13, 16)');
+      await p.click('#look .lseg >> text=Números');
+      await p.click('#look [data-font="jetbrains"]');
+      await p.click('#look .lseg >> text=Títulos');
+      await p.click('#look [data-font="space-grotesk"]');
+      await p.evaluate(() => document.fonts.ready);
+      assert.ok(await p.evaluate(() => document.fonts.check('600 26px "JetBrains Mono"', '0')));
+      await shut(p);
+      assert.match(await p.evaluate(() => getComputedStyle(document.querySelector('.set input')).fontFamily), /^"JetBrains Mono"/);
+      assert.match(await p.evaluate(() => getComputedStyle(document.querySelector('.head h1')).fontFamily), /^"Space Grotesk"/);
+      assert.equal(await p.evaluate(() => 'nummono' in document.documentElement.dataset), true);
       await p.reload();
       assert.equal(await p.evaluate(() => document.documentElement.dataset.theme), 'dark');
+      assert.equal(await p.evaluate(() => document.documentElement.dataset.palette), 'ardosia');
+      assert.match(await p.evaluate(() => getComputedStyle(document.querySelector('.set input')).fontFamily), /^"JetBrains Mono"/);
+      // Restaurar volta ao padrão (Areia, Bricolage/Geist), mas mantém os treinos.
+      await tool(p, '#btheme'); await p.click('#lreset'); await shut(p);
+      assert.equal(await p.evaluate(() => document.documentElement.dataset.palette), undefined);
+      assert.match(await p.evaluate(() => getComputedStyle(document.querySelector('.set input')).fontFamily), /^"?Bricolage"?,/);
+      assert.ok(await p.evaluate(() => !!localStorage.getItem('cg:logs')));
+      await p.evaluate(() => localStorage.setItem('cg:theme', 'dark'));
+      await p.reload();
       // Novidades: aparece depois de uma atualização (versão vista diferente) e fica no menu.
       await p.evaluate(() => localStorage.setItem('cg:seenVersion', 'v0.2.6'));
       await p.reload();
@@ -895,7 +919,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.equal(await p.locator('.ex >> nth=0 >> .set.last').count(), 1);
       assert.equal(await p.textContent('.ex >> nth=0 >> .set.last .tq'), 'Myo-reps');
       // Tema escuro: tons mais claros.
-      await tool(p, '#btheme'); await p.click('#btheme');
+      await tool(p, '#btheme'); await p.click('#look .lseg >> text=Escuro');
       assert.equal(await tec(last(0)), '#efb071');
       await shut(p);
       // Marcar a penúltima avisa a técnica da última.

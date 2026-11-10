@@ -2,6 +2,14 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.4.1 (2026-11-10)
+
+- Nova tela Aparência (Mais → Aparência): modo automático, claro ou escuro, 7 temas (Areia, Sálvia, Ardósia, Vinho, Terracota, Meia-noite e Tinta, que é preto puro no escuro) e fontes separadas para títulos, números e texto.
+- 19 fontes embutidas, funcionando offline: sem serifa (Bricolage, Geist, Space Grotesk, Manrope, Schibsted, Hanken, Sora, IBM Plex Sans, Unbounded), com serifa (Fraunces, Instrument Serif) e mono (Geist Mono, JetBrains Mono, Lilex, IBM Plex Mono, Commit Mono, Fira Code, Martian Mono, Red Hat Mono).
+- Todas as fontes mono usam zero cortado (0 com barra).
+- Correção: números longos (ex.: 102,5) eram cortados no campo de carga. A unidade (kg/rep) foi para o canto do campo e o número diminui sozinho se ainda não couber.
+- "Restaurar o visual padrão" volta ao visual original. Os treinos não são afetados.
+
 ## v0.4.0 (2026-11-10)
 
 - Visual novo: tipografia própria (Bricolage Grotesque nos títulos e números, Geist no texto), embutida no app e sem internet.

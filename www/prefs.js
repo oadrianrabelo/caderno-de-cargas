@@ -1,20 +1,84 @@
-// Preferências: tema (automático, claro, escuro) e tela de Novidades depois de cada atualização.
+// Preferências: Aparência (modo claro/escuro, paleta e fontes) e tela de Novidades depois de cada atualização.
 (function () {
   const tools = document.querySelector('.tools');
   if (!tools) return;
   const root = document.documentElement;
-  const THEMES = [['auto', 'Tema: automático'], ['light', 'Tema: claro'], ['dark', 'Tema: escuro']];
+  const MODES = [['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Escuro']];
   const get = () => { try { return localStorage.getItem('cg:theme') || 'auto'; } catch (e) { return 'auto'; } };
   function apply(t) {
     if (t === 'auto') delete root.dataset.theme; else root.dataset.theme = t;
     try { localStorage.setItem('cg:theme', t); } catch (e) { /* sem armazenamento */ }
-    btn.textContent = THEMES.find((x) => x[0] === t)[1];
     document.dispatchEvent(new CustomEvent('cg:theme'));
   }
-  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn'; btn.id = 'btheme';
-  btn.addEventListener('click', () => { const i = THEMES.findIndex((x) => x[0] === get()); apply(THEMES[(i + 1) % THEMES.length][0]); });
-  tools.appendChild(btn);
   apply(get());
+
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn'; btn.id = 'btheme'; btn.textContent = 'Aparência';
+  tools.appendChild(btn);
+  const L = window.CGLook;
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  const sheet = el('div', 'look'); sheet.id = 'look'; sheet.hidden = true; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Aparência');
+  document.body.appendChild(sheet);
+  let slot = 'title';
+  const SLOTS = [['title', 'Títulos'], ['num', 'Números'], ['text', 'Texto']];
+  const KINDS = [['sans', 'Sem serifa'], ['serif', 'Com serifa'], ['mono', 'Mono · zero cortado']];
+
+  function render() {
+    const v = L ? L.get() : null, mode = get();
+    sheet.textContent = '';
+    sheet.appendChild(el('h2', '', 'Aparência'));
+    // Prévia com as escolhas atuais.
+    const pv = el('div', 'lprev');
+    pv.append(el('small', '', 'Semana 3 · Push'), el('b', '', 'Supino reto'), el('strong', '', '102,5 kg × 8'), el('p', '', 'Última série até a falha. Descanso de 3 min.'));
+    sheet.appendChild(pv);
+
+    sheet.appendChild(el('h3', '', 'Modo'));
+    const seg = el('div', 'lseg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Modo');
+    MODES.forEach(([k, name]) => {
+      const b = el('button', '', name); b.type = 'button'; b.setAttribute('aria-pressed', String(mode === k));
+      b.addEventListener('click', () => { apply(k); render(); });
+      seg.appendChild(b);
+    });
+    sheet.appendChild(seg);
+    if (!L) return;
+
+    sheet.appendChild(el('h3', '', 'Tema'));
+    const pals = el('div', 'lpals');
+    L.PALETTES.forEach(([k, name, lc, dc]) => {
+      const b = el('button', 'lpal'); b.type = 'button'; b.dataset.palette = k; b.setAttribute('aria-pressed', String(v.palette === k)); b.setAttribute('aria-label', 'Tema ' + name);
+      const sw = el('span', 'sw');
+      [lc, dc].forEach((c) => { const h = el('i'); h.style.background = c[0]; const d = el('u'); d.style.background = c[2]; d.style.boxShadow = '0 0 0 3px ' + c[1]; h.appendChild(d); sw.appendChild(h); });
+      b.append(sw, el('span', 'nm', name));
+      b.addEventListener('click', () => { L.set({ palette: k }); render(); });
+      pals.appendChild(b);
+    });
+    sheet.appendChild(pals);
+
+    sheet.appendChild(el('h3', '', 'Fontes'));
+    const fs = el('div', 'lseg'); fs.setAttribute('role', 'tablist'); fs.setAttribute('aria-label', 'Onde aplicar a fonte');
+    SLOTS.forEach(([k, name]) => {
+      const b = el('button', '', name); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(slot === k)); b.setAttribute('aria-pressed', String(slot === k));
+      b.addEventListener('click', () => { slot = k; render(); });
+      fs.appendChild(b);
+    });
+    sheet.appendChild(fs);
+    KINDS.forEach(([kind, title]) => {
+      sheet.appendChild(el('div', 'lkind', title));
+      const list = el('div', 'lfonts');
+      L.FONTS.filter((f) => f[3] === kind).forEach(([id, name]) => {
+        L.load(id);
+        const b = el('button', 'lfont'); b.type = 'button'; b.dataset.font = id; b.setAttribute('aria-pressed', String(v[slot] === id));
+        b.style.fontFamily = L.stack(id);
+        b.append(el('span', 'nm', name), el('span', 'smp', slot === 'num' ? '102,5 × 8' : slot === 'title' ? 'Supino' : 'Aa 0'));
+        b.addEventListener('click', () => { const p = {}; p[slot] = id; L.set(p); render(); });
+        list.appendChild(b);
+      });
+      sheet.appendChild(list);
+    });
+    const rs = el('button', 'btn', 'Restaurar o visual padrão'); rs.type = 'button'; rs.id = 'lreset';
+    rs.addEventListener('click', () => { L.reset(); apply('auto'); render(); });
+    sheet.appendChild(rs);
+  }
+  btn.addEventListener('click', () => { render(); sheet.hidden = false; });
 
   // Novidades: mostra as mudanças das versões que o aparelho ainda não viu.
   const log = window.CG_CHANGELOG || [];
