@@ -127,12 +127,12 @@
       const next = row.nextElementSibling;
       if (row.classList.contains('done') && next && next.classList.contains('last') && !next.classList.contains('done') && window.CGTips) {
         const tk = next.dataset.tec, t = CGTips.TECH[tk];
-        if (t) toast('⚠ Próxima é a última: ' + t.short.toUpperCase() + ' (toque na etiqueta para lembrar como faz)', tk);
+        if (t) toast('Próxima é a última: ' + t.short.toUpperCase() + ' (toque na etiqueta para lembrar como faz)', tk);
       }
       if (!wasPr && row.classList.contains('rec')) {
         const [k, r] = row.querySelectorAll('input'), name = c.querySelector('h2').textContent;
         const rec = CG.isRecord(app.view().logs, name, app.view().week + '-' + app.view().day, k.value, r.value);
-        toast('🏅 Recorde! ' + name + ': ' + kg(k.value) + ' kg × ' + r.value + (rec && !rec.kg ? ' (melhor 1RM estimado)' : ''));
+        toast('Recorde pessoal · ' + name + ': ' + kg(k.value) + ' kg × ' + r.value + (rec && !rec.kg ? ' (melhor 1RM estimado)' : ''));
       }
     }, 0);
   });

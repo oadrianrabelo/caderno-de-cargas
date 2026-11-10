@@ -75,7 +75,7 @@
     panel.appendChild(mk('h3', null, 'Esta semana · desde ' + shortDate(wk.start)));
     const wks = mk('div', 'kpis'); wks.id = 'weekkpis';
     [[String(wk.sessions), wk.sessions === 1 ? 'treino' : 'treinos'], [wk.volume.toLocaleString('pt-BR') + ' kg', 'volume (' + wk.sets + ' séries)'],
-      [String(wk.records), wk.records === 1 ? 'recorde 🏅' : 'recordes 🏅'], [wk.energy ? String(wk.energy).replace('.', ',') + ' / 5' : '—', 'energia média']].forEach(([b, t]) => {
+      [String(wk.records), wk.records === 1 ? 'recorde' : 'recordes'], [wk.energy ? String(wk.energy).replace('.', ',') + ' / 5' : '—', 'energia média']].forEach(([b, t]) => {
       const k = mk('div', 'kpi'); k.append(mk('b', null, b), mk('span', null, t)); wks.appendChild(k);
     });
     panel.appendChild(wks);

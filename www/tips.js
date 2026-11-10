@@ -66,7 +66,7 @@
   };
 
   // Cor de cada técnica (tema claro, tema escuro): a última série fica nessa cor para não passar batido.
-  const COLORS = { falha: ['#c92a2a', '#ff8787'], llp: ['#7048e8', '#b197fc'], myo: ['#d9480f', '#ffa94d'], drop: ['#0b7285', '#66d9e8'], estatico: ['#a37b00', '#ffd43b'] };
+  const COLORS = { falha: ['#b4483f', '#ec8f84'], llp: ['#6a55b8', '#b3a3ee'], myo: ['#b86a1f', '#efb071'], drop: ['#2f7f8a', '#7fcbd4'], estatico: ['#8f7414', '#e2c96a'] };
   Object.keys(COLORS).forEach((k) => { TECH[k].color = COLORS[k]; });
 
   const api = { TECH, TOPICS };

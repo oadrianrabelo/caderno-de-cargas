@@ -15,7 +15,7 @@ function serve() {
   const srv = http.createServer((req, res) => {
     const f = path.join(WWW, decodeURIComponent(req.url.split('?')[0]) === '/' ? 'index.html' : decodeURIComponent(req.url.split('?')[0]));
     if (!f.startsWith(WWW) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
-    res.writeHead(200, { 'Content-Type': f.endsWith('.js') ? 'text/javascript' : 'text/html; charset=utf-8' });
+    res.writeHead(200, { 'Content-Type': f.endsWith('.js') ? 'text/javascript' : f.endsWith('.css') ? 'text/css' : 'text/html; charset=utf-8' });
     fs.createReadStream(f).pipe(res);
   });
   return new Promise((r) => srv.listen(0, '127.0.0.1', () => r(srv)));
@@ -42,6 +42,8 @@ const FAKE_CAP = `
 const skip = chromium ? false : 'Playwright não instalado';
 // Botões que ficam dentro do menu "Mais": abre o menu se precisar.
 const tool = async (pg, sel) => { if (!(await pg.isVisible(sel))) await pg.click('#bmore'); return pg.click(sel); };
+// Fecha a folha aberta (Nuvem, Progresso...), que cobre a lista como na tela real.
+const shut = async (pg) => { if (await pg.isVisible('#sheetx')) await pg.click('#sheetx'); if (await pg.isVisible('#more')) await pg.click('#bmore'); };
 
 test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, async (t) => {
   const srv = await serve();
@@ -50,6 +52,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
   const errors = [];
   const watch = (p) => { p.on('pageerror', (e) => errors.push(e.message)); p.on('console', (m) => { if (m.type() === 'error' && !/favicon/.test(m.text())) errors.push(m.text()); }); };
   const fill = async (p, kg, reps) => {
+    await shut(p);
     const set = p.locator('.set').first();
     await set.locator('input').nth(0).fill(kg);
     await set.locator('input').nth(1).fill(reps);
@@ -87,7 +90,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p2.setInputFiles('#fimp', file);
       await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup importado');
       assert.equal(await p2.textContent('#title'), 'Lower');
-      await p2.click('.tab >> nth=0');
+      await shut(p2); await p2.click('.tab >> nth=0');
       assert.equal(await p2.inputValue('.set >> nth=0 >> input >> nth=0'), '42.5');
       // Desfazer volta para os dados de antes da importação.
       assert.ok(await p2.isVisible('#undonote >> text=Desfazer importação'));
@@ -98,7 +101,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup importado');
       await p2.click('#undonote >> text=Manter');
       assert.equal(await p2.isVisible('#undonote'), false);
-      await p2.click('.tab >> nth=0');
+      await shut(p2); await p2.click('.tab >> nth=0');
       fs.writeFileSync(file, 'lixo');
       await p2.setInputFiles('#fimp', file);
       await p2.waitForFunction(() => document.getElementById('status').textContent === 'Arquivo inválido');
@@ -186,7 +189,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p2.click('#cloud >> text=Baixar da nuvem');
       await p2.click('#cloud >> text=Toque de novo');
       await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup da nuvem importado');
-      await p2.click('.tab >> nth=0');
+      await shut(p2); await p2.click('.tab >> nth=0');
       assert.equal(await p2.inputValue('.set >> nth=0 >> input >> nth=0'), '80');
       await ctx.close(); await ctx2.close();
     });
@@ -247,7 +250,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p2.click('#cloud >> text=Baixar da nuvem');
       await p2.click('#cloud >> text=Toque de novo');
       await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup da nuvem importado');
-      await p2.click('.tab >> nth=0');
+      await shut(p2); await p2.click('.tab >> nth=0');
       assert.equal(await p2.inputValue('.set >> nth=0 >> input >> nth=0'), '33');
       await ctx.close(); await ctx2.close();
     });
@@ -262,7 +265,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
     await t.test('pular treino: marca, avança, aparece no progresso e pode ser desfeito', async () => {
       const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
-      await p.click('#bskip');
+      await tool(p, '#bskip');
       assert.equal(await p.textContent('#title'), 'Lower');
       assert.equal(await p.textContent('#status'), 'Treino pulado. Próximo: Lower');
       assert.equal(await p.locator('.tab >> nth=0 >> .dot.skip').count(), 1);
@@ -275,7 +278,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       assert.equal(await p.isVisible('#progress'), false);
       assert.match(await p.textContent('#skipnote'), /Você pulou este treino em/);
       assert.equal(await p.textContent('#bskip'), 'Desfazer pulo');
-      await p.click('#bskip');
+      await tool(p, '#bskip');
       assert.equal(await p.isVisible('#skipnote'), false);
       assert.equal(await p.locator('.tab >> nth=0 >> .dot').count(), 0);
       await ctx.close();
@@ -548,7 +551,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p2.goto(url);
       await p2.setInputFiles('#fimp', file);
       await p2.waitForFunction(() => document.getElementById('status').textContent === 'Backup importado');
-      await p2.click('.tab >> nth=0');
+      await shut(p2); await p2.click('.tab >> nth=0');
       assert.equal(await p2.locator('.ex >> nth=1 >> .tag.tec').textContent(), 'Última série: Along. estático ⓘ');
       fs.unlinkSync(file);
       await ctx.close(); await ctx2.close();
@@ -597,9 +600,9 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
       await p.goto(url);
       const dayColor = () => p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--day').trim());
-      assert.equal(await dayColor(), '#1f4fd8');
+      assert.equal(await dayColor(), '#4f67b8');
       await p.click('.tab >> nth=1');
-      assert.equal(await dayColor(), '#d9480f');
+      assert.equal(await dayColor(), '#b5713f');
       // Lower da semana 1: completar o 1º exercício marca o selo; completar tudo comemora.
       const cards = p.locator('.ex');
       const n = await cards.count();
@@ -638,10 +641,10 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.goto(url);
       // Menu: só Editar, Pular, Progresso à vista; o resto abre no "Mais".
       assert.equal(await p.isVisible('#bexp'), false);
-      assert.equal(await p.textContent('#bmore'), 'Mais ▾');
+      assert.equal(await p.textContent('#bmore'), 'Mais');
       await p.click('#bmore');
       assert.ok(await p.isVisible('#bexp'));
-      assert.equal(await p.textContent('#bmore'), 'Menos ▴');
+      assert.equal(await p.getAttribute('#bmore', 'aria-expanded'), 'true');
       await p.click('#bmore');
       // Duas sessões do supino (semanas 1 e 2) para o histórico.
       const ex0 = () => p.locator('.ex >> nth=0');
@@ -698,7 +701,7 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await p.click('#wnext');
       assert.equal(await p.inputValue('#sess textarea'), '');
       await mark(ex0(), 0, '65', '8');
-      await p.waitForSelector('#toast.on >> text=🏅 Recorde! 45° Incline Barbell Press: 65 kg × 8');
+      await p.waitForSelector('#toast.on >> text=Recorde pessoal · 45° Incline Barbell Press: 65 kg × 8');
       assert.ok(await ex0().locator('.set:not(.warm) >> nth=0').evaluate((e) => e.classList.contains('rec')));
       // A medalha não muda o layout da série: continua em grade, igual às outras.
       assert.equal(await ex0().locator('.set:not(.warm) >> nth=0').evaluate((e) => getComputedStyle(e).display), 'grid');
@@ -789,8 +792,8 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await tool(p, '#btheme'); await p.click('#btheme');
       assert.equal(await p.textContent('#btheme'), 'Tema: escuro');
       assert.equal(await p.evaluate(() => document.documentElement.dataset.theme), 'dark');
-      assert.equal(await p.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(14, 18, 23)');
-      assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--day').trim()), '#7b9cff');
+      assert.equal(await p.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(12, 13, 15)');
+      assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--day').trim()), '#9bb0ec');
       await p.reload();
       assert.equal(await p.evaluate(() => document.documentElement.dataset.theme), 'dark');
       // Novidades: aparece depois de uma atualização (versão vista diferente) e fica no menu.
@@ -885,19 +888,20 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       const tec = (sel) => p.evaluate((q) => getComputedStyle(document.querySelector(q)).getPropertyValue('--tec').trim(), sel);
       const last = (i) => '.ex:nth-child(' + (i + 1) + ') .set.last';
       // Cada técnica com a sua cor, na série e na etiqueta.
-      assert.equal(await tec(last(0)), '#d9480f');
-      assert.equal(await tec(last(1)), '#7048e8');
-      assert.equal(await tec(last(2)), '#c92a2a');
-      assert.equal(await p.evaluate(() => getComputedStyle(document.querySelector('.ex .tag.tec-myo')).borderTopColor), 'rgb(217, 72, 15)');
+      assert.equal(await tec(last(0)), '#b86a1f');
+      assert.equal(await tec(last(1)), '#6a55b8');
+      assert.equal(await tec(last(2)), '#b4483f');
+      assert.equal(await p.evaluate(() => getComputedStyle(document.querySelector('.ex .tag.tec-myo')).borderTopColor), 'rgb(184, 106, 31)');
       assert.equal(await p.locator('.ex >> nth=0 >> .set.last').count(), 1);
       assert.equal(await p.textContent('.ex >> nth=0 >> .set.last .tq'), 'Myo-reps');
       // Tema escuro: tons mais claros.
       await tool(p, '#btheme'); await p.click('#btheme');
-      assert.equal(await tec(last(0)), '#ffa94d');
+      assert.equal(await tec(last(0)), '#efb071');
+      await shut(p);
       // Marcar a penúltima avisa a técnica da última.
       const r = p.locator('.ex >> nth=0 >> .set:not(.warm) >> nth=0');
       await r.locator('input >> nth=0').fill('60'); await r.locator('input >> nth=1').fill('8'); await r.locator('.ck').click();
-      await p.waitForSelector('#toast.on >> text=⚠ Próxima é a última: MYO-REPS');
+      await p.waitForSelector('#toast.on >> text=Próxima é a última: MYO-REPS');
       assert.ok(await p.evaluate(() => document.getElementById('toast').classList.contains('tec-myo')));
       // A dica no glossário também vem colorida.
       await p.click('.ex >> nth=0 >> .tag.tec-myo');

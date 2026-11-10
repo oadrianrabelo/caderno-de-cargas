@@ -2,6 +2,15 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.4.0 (2026-11-10)
+
+- Visual novo: tipografia própria (Bricolage Grotesque nos títulos e números, Geist no texto), embutida no app e sem internet.
+- Cores mais sóbrias: fundo papel quente no tema claro e grafite no escuro; cores dos dias e das técnicas em tons suaves.
+- Barra inferior enxuta (Editar, Progresso, Modo foco, Mais) com ícones; o resto foi para o menu "Mais", em grupos (Treino, Dados, App).
+- Progresso, Nuvem, Programas e Versão abrem como folhas que sobem de baixo, uma por vez, com fundo escurecido e botão de fechar.
+- Abas dos dias com indicador que desliza, cartões e campos maiores, ✓ redondo, cronômetro flutuando acima da barra.
+- Os seus dados não mudam: só a aparência.
+
 ## v0.3.6 (2026-11-10)
 
 - Correção: treinos antigos (antes da v0.2.7, sem horário nas séries) voltam a usar o dia da última alteração no calendário; o dia em que foram abertos não era confiável. Se algum estiver no dia errado, corrija em "Como foi o treino? → Data do treino · Alterar".

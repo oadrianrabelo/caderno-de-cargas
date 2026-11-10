@@ -6,7 +6,8 @@
 
   // Cores por dia (claro / escuro). Programas próprios usam a paleta em sequência.
   const DAY = { upper: 0, lower: 1, pull: 2, push: 3, legs: 4 };
-  const PALETTE = [['#1f4fd8', '#7b9cff'], ['#d9480f', '#ff9a5c'], ['#0c8599', '#4fd1e0'], ['#c92a2a', '#ff8787'], ['#7048e8', '#b197fc'], ['#e67700', '#ffc94d'], ['#5c940d', '#a9e34b']];
+  // Tons dessaturados (claro, escuro): marcam o dia sem virar carnaval.
+  const PALETTE = [['#4f67b8', '#9bb0ec'], ['#b5713f', '#e4a97c'], ['#3f8a8f', '#86c8cc'], ['#a9545a', '#e19aa0'], ['#7462b5', '#b6a8e6'], ['#a07a2a', '#d9bd7a'], ['#5b8048', '#a6c995']];
   const dark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); };
   const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 

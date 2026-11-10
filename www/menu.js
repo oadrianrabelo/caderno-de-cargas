@@ -1,21 +1,32 @@
-// Menu "Mais": deixa à vista só o que se usa no treino (Editar, Pular, Progresso) e guarda o resto.
-// Roda por último, depois que todos os scripts criaram seus botões.
+// Barra inferior e menu "Mais": à vista só o que se usa no treino (Editar, Progresso, Foco);
+// o resto fica numa folha que sobe, em grupos. Roda por último, depois que os scripts criaram seus botões.
 (function () {
   const tools = document.querySelector('.tools');
   if (!tools) return;
-  const css = document.createElement('style');
-  css.textContent = '.more{display:flex;flex-wrap:wrap;gap:8px;width:100%;padding:10px;border:1px dashed var(--line);border-radius:10px}' +
-    '@keyframes cgmore{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}.more:not([hidden]){animation:cgmore .18s ease-out}' +
-    '@media (prefers-reduced-motion: reduce){.more:not([hidden]){animation:none}}';
-  document.head.appendChild(css);
-  const IDS = ['bplates', 'bprogs', 'bexp', 'bimp', 'bcsv', 'bcloud', 'btheme', 'bgloss', 'bnews', 'bver'];
-  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn'; btn.id = 'bmore';
+  const GROUPS = [
+    ['Treino', ['bskip', 'bprogs', 'bplates']],
+    ['Dados', ['bexp', 'bimp', 'bcsv', 'bcloud']],
+    ['App', ['btheme', 'bgloss', 'bnews', 'bver']]
+  ];
+  // Itens que abrem outra tela: o menu fecha ao tocar neles (o Tema só alterna, então o menu fica).
+  const KEEP_OPEN = ['btheme'];
+
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn'; btn.id = 'bmore'; btn.textContent = 'Mais';
   btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'more');
   const box = document.createElement('div'); box.className = 'more'; box.id = 'more'; box.hidden = true;
-  IDS.forEach((id) => { const b = document.getElementById(id); if (b) box.appendChild(b); });
-  const label = () => { btn.textContent = box.hidden ? 'Mais ▾' : 'Menos ▴'; btn.setAttribute('aria-expanded', String(!box.hidden)); };
-  btn.addEventListener('click', () => { box.hidden = !box.hidden; label(); });
+  box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Mais opções');
+  GROUPS.forEach(([title, ids]) => {
+    const g = document.createElement('section'); g.className = 'mgroup';
+    const h = document.createElement('h3'); h.textContent = title;
+    const list = document.createElement('div'); list.className = 'mlist';
+    ids.forEach((id) => { const b = document.getElementById(id); if (b) list.appendChild(b); });
+    if (list.children.length) { g.append(h, list); box.appendChild(g); }
+  });
+  const set = (open) => { box.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.classList.toggle('on', open); };
+  btn.addEventListener('click', () => set(box.hidden));
+  box.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && KEEP_OPEN.indexOf(b.id) < 0) set(false); });
   tools.appendChild(btn);
-  tools.appendChild(box);
-  label();
+  // Fora da barra: a barra usa desfoque (backdrop-filter), que prenderia uma folha fixa dentro dela.
+  document.body.appendChild(box);
+  window.CGMenu = { open: () => set(true), close: () => set(false) };
 })();
