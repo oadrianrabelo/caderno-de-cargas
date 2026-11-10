@@ -1,5 +1,12 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.4.2', date: '2026-11-10', items: [
+    'Correção: com uma folha aberta (Progresso, Programas, Aparência…), tocar em Editar ou Modo foco mudava a tela por baixo e a folha continuava por cima. Agora a folha fecha antes.',
+    'Correção: abrir uma folha fecha a janela de dica (Glossário, Anilhas, Histórico) que tivesse ficado aberta.',
+    'Mais leve: trocar de dia ou de semana e marcar série não forçam mais o celular a recalcular a tela duas vezes (animação de entrada e indicador das abas sem medições).',
+    'Mais leve: sem desfoque de fundo no cabeçalho, na barra inferior e nas folhas (pesado em Android); as cores continuam as mesmas, agora quase opacas.',
+    'A Aparência abre na hora e as fontes de exemplo carregam logo em seguida.'
+  ] },
   { version: 'v0.4.1', date: '2026-11-10', items: [
     'Nova tela Aparência (Mais → Aparência): modo automático, claro ou escuro, 7 temas (Areia, Sálvia, Ardósia, Vinho, Terracota, Meia-noite e Tinta, que é preto puro no escuro) e fontes separadas para títulos, números e texto.',
     '19 fontes embutidas, funcionando offline: sem serifa (Bricolage, Geist, Space Grotesk, Manrope, Schibsted, Hanken, Sora, IBM Plex Sans, Unbounded), com serifa (Fraunces, Instrument Serif) e mono (Geist Mono, JetBrains Mono, Lilex, IBM Plex Mono, Commit Mono, Fira Code, Martian Mono, Red Hat Mono).',

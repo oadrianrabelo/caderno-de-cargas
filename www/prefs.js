@@ -65,7 +65,6 @@
       sheet.appendChild(el('div', 'lkind', title));
       const list = el('div', 'lfonts');
       L.FONTS.filter((f) => f[3] === kind).forEach(([id, name]) => {
-        L.load(id);
         const b = el('button', 'lfont'); b.type = 'button'; b.dataset.font = id; b.setAttribute('aria-pressed', String(v[slot] === id));
         b.style.fontFamily = L.stack(id);
         b.append(el('span', 'nm', name), el('span', 'smp', slot === 'num' ? '102,5 × 8' : slot === 'title' ? 'Supino' : 'Aa 0'));
@@ -78,7 +77,12 @@
     rs.addEventListener('click', () => { L.reset(); apply('auto'); render(); });
     sheet.appendChild(rs);
   }
-  btn.addEventListener('click', () => { render(); sheet.hidden = false; });
+  // As fontes das opções carregam depois que a folha já abriu (cada uma aparece quando chega), para não travar a abertura.
+  let fontsAsked = false;
+  btn.addEventListener('click', () => {
+    render(); sheet.hidden = false;
+    if (!fontsAsked && L) { fontsAsked = true; setTimeout(() => L.FONTS.forEach((f) => L.load(f[0])), 350); }
+  });
 
   // Novidades: mostra as mudanças das versões que o aparelho ainda não viu.
   const log = window.CG_CHANGELOG || [];

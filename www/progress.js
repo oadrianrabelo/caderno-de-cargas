@@ -27,8 +27,12 @@
   const button = (cls, txt) => { const b = mk('button', cls, txt); b.type = 'button'; return b; };
   const DAY_MS = 86400000;
   const fmtKg = (n) => String(Math.round(n * 100) / 100).replace('.', ',');
-  const shortDate = (t) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-  const weekday = (t) => new Date(t).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+  // Formatadores criados uma vez (o calendário formata dezenas de datas a cada abertura).
+  const F_SHORT = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' });
+  const F_WD = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' });
+  const F_FULL = new Intl.DateTimeFormat('pt-BR');
+  const shortDate = (t) => F_SHORT.format(new Date(t));
+  const weekday = (t) => F_WD.format(new Date(t)).replace('.', '');
   const daysAgo = (t) => Math.round((new Date(CG.isoDay(Date.now())) - new Date(CG.isoDay(t))) / DAY_MS);
 
   const btn = button('btn', 'Progresso'); btn.id = 'bprog';
@@ -109,7 +113,7 @@
     for (let i = 0; i < 35; i++) {
       const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), iso = CG.isoDay(d.getTime());
       const c = mk('span', (marks[iso] || '') + (iso === CG.isoDay(today.getTime()) ? ' today' : '') + (d > today ? ' out' : ''), String(d.getDate()));
-      c.title = d.toLocaleDateString('pt-BR') + (marks[iso] === 'done' ? ': treinou' : marks[iso] === 'skip' ? ': pulou' : '');
+      c.title = F_FULL.format(d) + (marks[iso] === 'done' ? ': treinou' : marks[iso] === 'skip' ? ': pulou' : '');
       cal.appendChild(c);
     }
     panel.appendChild(cal);

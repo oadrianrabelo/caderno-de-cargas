@@ -44,7 +44,9 @@
   function setDayColor() {
     const v = app.view(), i = v.day in DAY ? DAY[v.day] : v.ORDER.indexOf(v.day);
     const c = PALETTE[(i < 0 ? 0 : i) % PALETTE.length];
-    document.documentElement.style.setProperty('--day', dark() ? c[1] : c[0]);
+    const val = dark() ? c[1] : c[0];
+    // Só grava se mudou: mexer numa variável da raiz faz o navegador recalcular a página toda.
+    if (document.documentElement.style.getPropertyValue('--day') !== val) document.documentElement.style.setProperty('--day', val);
   }
 
   // Exercício completo: todas as séries válidas marcadas.
@@ -96,14 +98,15 @@
   }
 
   // Lista refeita (trocou de dia/semana ou editou): cores, selos e animação de entrada.
-  let lastKey = null;
+  let lastKey = null, enterT = 0;
   new MutationObserver(() => {
     setDayColor();
     markCards();
     const v = app.view(), key = v.week + '-' + v.day;
+    // Os cartões são novos a cada troca, então a animação de entrada roda sozinha com a classe: sem forçar reflow.
     if (key !== lastKey && lastKey !== null && !reduce()) {
-      list.classList.remove('enter'); void list.offsetWidth; list.classList.add('enter');
-      setTimeout(() => list.classList.remove('enter'), 600);
+      list.classList.add('enter');
+      clearTimeout(enterT); enterT = setTimeout(() => list.classList.remove('enter'), 600);
     }
     lastKey = key;
   }).observe(list, { childList: true });

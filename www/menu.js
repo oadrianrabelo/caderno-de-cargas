@@ -26,7 +26,7 @@
   btn.addEventListener('click', () => set(box.hidden));
   box.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && KEEP_OPEN.indexOf(b.id) < 0) set(false); });
   tools.appendChild(btn);
-  // Fora da barra: a barra usa desfoque (backdrop-filter), que prenderia uma folha fixa dentro dela.
+  // Fora da barra: a barra usa transform, que prenderia uma folha fixa dentro dela.
   document.body.appendChild(box);
   window.CGMenu = { open: () => set(true), close: () => set(false) };
 })();

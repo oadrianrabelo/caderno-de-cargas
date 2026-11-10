@@ -1,5 +1,7 @@
 // Sessão do dia: "Como foi?" (energia 1-5 e anotação), duração do treino e recordes pessoais.
 (function () {
+  // Formatador de data criado uma vez só (criar a cada redesenho custava tempo no celular).
+  const DAYFMT = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
   const app = window.CGApp, list = document.getElementById('list');
   if (!app || !list || !window.CG) return;
 
@@ -60,7 +62,7 @@
     const du = mk('div', 'du', durText(doc)); du.id = 'sessdur';
     // Data do treino (para o calendário): vem das séries marcadas; dá para corrigir se registrou outro dia.
     const dl = mk('div', 'du'); dl.id = 'sessdate';
-    const fmtDay = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+    const fmtDay = (iso) => DAYFMT.format(new Date(iso + 'T12:00:00'));
     const drawDate = () => {
       dl.textContent = '';
       const cur = app.view().doc, day = cur && CG.dayStatus(cur) ? CG.sessionDay(cur) : '';

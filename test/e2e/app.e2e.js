@@ -255,6 +255,34 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close(); await ctx2.close();
     });
 
+    await t.test('folhas: uma por vez, e Editar/Modo foco fecham a folha aberta', async () => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      const open = () => p.evaluate(() => ['more', 'progress', 'cloud', 'programs', 'version', 'look', 'tipov'].filter((id) => { const e = document.getElementById(id); return e && !e.hidden; }));
+      await p.click('#bprog');
+      assert.deepEqual(await open(), ['progress']);
+      await p.click('#bedit');
+      assert.deepEqual(await open(), []);
+      await p.click('#bedit');
+      await tool(p, '#bprogs');
+      assert.deepEqual(await open(), ['programs']);
+      await p.click('#bfocus');
+      assert.deepEqual(await open(), []);
+      assert.ok(await p.evaluate(() => document.body.classList.contains('focus')));
+      await p.click('#bfocus');
+      // Abrir uma folha fecha a janela de dica que estiver aberta.
+      await tool(p, '#bgloss');
+      assert.deepEqual(await open(), ['tipov']);
+      await p.evaluate(() => document.getElementById('bprog').click());
+      assert.deepEqual(await open(), ['progress']);
+      // Indicador das abas acompanha o dia escolhido, sem medir a tela.
+      await shut(p);
+      await p.click('.tab >> nth=2'); await p.waitForTimeout(500);
+      const [ix, tx] = await p.evaluate(() => { const i = document.querySelector('.tabind').getBoundingClientRect(), t = document.querySelector('.tab[aria-selected="true"]').getBoundingClientRect(); return [Math.round(i.left), Math.round(t.left)]; });
+      assert.ok(Math.abs(ix - tx) <= 1, 'indicador em ' + ix + ', aba em ' + tx);
+      await ctx.close();
+    });
+
     await t.test('painéis começam fechados', async () => {
       const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
       await p.goto(url);

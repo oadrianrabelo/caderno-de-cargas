@@ -2,6 +2,14 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.4.2 (2026-11-10)
+
+- Correção: com uma folha aberta (Progresso, Programas, Aparência…), tocar em Editar ou Modo foco mudava a tela por baixo e a folha continuava por cima. Agora a folha fecha antes.
+- Correção: abrir uma folha fecha a janela de dica (Glossário, Anilhas, Histórico) que tivesse ficado aberta.
+- Mais leve: trocar de dia ou de semana e marcar série não forçam mais o celular a recalcular a tela duas vezes (animação de entrada e indicador das abas sem medições).
+- Mais leve: sem desfoque de fundo no cabeçalho, na barra inferior e nas folhas (pesado em Android); as cores continuam as mesmas, agora quase opacas.
+- A Aparência abre na hora e as fontes de exemplo carregam logo em seguida.
+
 ## v0.4.1 (2026-11-10)
 
 - Nova tela Aparência (Mais → Aparência): modo automático, claro ou escuro, 7 temas (Areia, Sálvia, Ardósia, Vinho, Terracota, Meia-noite e Tinta, que é preto puro no escuro) e fontes separadas para títulos, números e texto.
