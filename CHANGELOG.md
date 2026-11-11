@@ -2,6 +2,10 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.5.1 (2026-11-11)
+
+- Ícone novo: monograma "C" em forma de anilha, em bronze sobre grafite, combinando com o visual do app. Também na notificação, na tela de abertura e no ícone temático do Android 13+.
+
 ## v0.5.0 (2026-11-11)
 
 - APK novo, com assinatura permanente: as próximas versões de APK instalam por cima, sem desinstalar e sem perder dados (Mais → Versão → Baixar e instalar).
