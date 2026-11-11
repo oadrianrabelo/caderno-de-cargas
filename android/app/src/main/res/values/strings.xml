@@ -4,4 +4,10 @@
     <string name="title_activity_main">Caderno de Cargas</string>
     <string name="package_name">com.oadrianrabelo.cadernodecargas</string>
     <string name="custom_url_scheme">com.oadrianrabelo.cadernodecargas</string>
+    <string name="sc_hoje_curto">Treino de hoje</string>
+    <string name="sc_hoje_longo">Abrir o treino de hoje</string>
+    <string name="sc_prog_curto">Progresso</string>
+    <string name="sc_prog_longo">Ver o progresso</string>
+    <string name="sc_foco_curto">Modo foco</string>
+    <string name="sc_foco_longo">Treinar no modo foco</string>
 </resources>

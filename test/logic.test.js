@@ -106,12 +106,12 @@ test('backup: exportar e importar devolve os mesmos dados', () => {
   const custom = { '1-upper': [{ id: 'o0', n: 'A', s: 1, r: '5', t: '1 min', a: [] }] };
   const txt = CG.serializeBackup(logs, custom);
   assert.equal(JSON.parse(txt).v, 1);
-  assert.deepEqual(CG.parseBackup(txt), { logs, custom, programs: null, extra: null });
+  assert.deepEqual(CG.parseBackup(txt), { logs, custom, programs: null, extra: null, prefs: null });
 });
 
 test('backup: importar substitui os dados e tolera custom ausente', () => {
-  assert.deepEqual(CG.parseBackup('{"v":1,"logs":{"a":1}}'), { logs: { a: 1 }, custom: {}, programs: null, extra: null });
-  assert.deepEqual(CG.parseBackup('{"logs":{},"custom":"x"}'), { logs: {}, custom: {}, programs: null, extra: null });
+  assert.deepEqual(CG.parseBackup('{"v":1,"logs":{"a":1}}'), { logs: { a: 1 }, custom: {}, programs: null, extra: null, prefs: null });
+  assert.deepEqual(CG.parseBackup('{"logs":{},"custom":"x"}'), { logs: {}, custom: {}, programs: null, extra: null, prefs: null });
 });
 
 test('backup: rejeita arquivos inválidos', () => {
@@ -447,4 +447,14 @@ test('dia e ordem do treino não mudam se ele for editado depois', () => {
   assert.equal(CG.sessionDay(Object.assign({}, old, { when: '2026-10-26' })), '2026-10-26');
   // Pulado: o dia do pulo (t), não o dia em que foi aberto.
   assert.equal(CG.sessionDay({ week: 1, day: 'legs', date: '2026-10-20', t: tue, ex: {}, skip: true }), '2026-11-03');
+});
+
+test('backup leva a aparência (tema e fontes) e ignora valores estranhos', () => {
+  const prefs = { look: { palette: 'salvia', num: 'jetbrains', title: 'bricolage', text: 'geist' }, theme: 'dark' };
+  const txt = CG.serializeBackup({}, {}, null, null, prefs);
+  assert.deepEqual(CG.parseBackup(txt).prefs, prefs);
+  assert.equal(JSON.parse(CG.serializeBackup({}, {}, null, null, {})).prefs, undefined);
+  assert.equal(CG.parseBackup('{"logs":{},"prefs":"x"}').prefs, null);
+  assert.deepEqual(CG.parseBackup('{"logs":{},"prefs":{"theme":"rosa","look":{"palette":"vinho"}}}').prefs, { look: { palette: 'vinho' } });
+  assert.equal(CG.parseBackup('{"logs":{},"prefs":{"theme":"rosa","look":[]}}').prefs, null);
 });

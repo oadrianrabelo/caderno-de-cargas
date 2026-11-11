@@ -18,7 +18,7 @@
   const lab = document.createElement('small'), big = document.createElement('b');
   tl.append(lab, big);
   const mkb = (t, f, aria) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; if (aria) b.setAttribute('aria-label', aria); b.addEventListener('click', f); return b; };
-  bar.append(tl, mkb('−15', () => add(-15), 'Menos 15 segundos'), mkb('+15', () => add(15), 'Mais 15 segundos'), mkb('✕', stop, 'Parar descanso'));
+  bar.append(tl, mkb('−15', () => add(-15), 'Menos 15 segundos'), mkb('+15', () => add(15), 'Mais 15 segundos'), mkb('✕', () => stop(), 'Parar descanso'));
   document.body.appendChild(bar);
 
   let end = 0, tick = null, hideTm = null, rang = false;
@@ -50,6 +50,11 @@
     try { alarm = ac.createGain(); alarm.connect(ac.destination); chime(ac.currentTime + left, alarm); } catch (e) { alarm = null; }
   }
   function ring() {
+    // Com o alarme nativo (APK novo), o Android já vibra e avisa; aqui só o toque, e só com o app na frente.
+    if (nativeRest) {
+      if (!document.hidden && audio()) { try { const g = ac.createGain(); g.connect(ac.destination); chime(ac.currentTime + 0.02, g); } catch (e) { /* sem áudio */ } }
+      return;
+    }
     // Se o agendado não deu (sem áudio ou contexto parado), toca agora.
     if (!alarm || !ac || ac.state !== 'running') { if (audio()) { try { const g = ac.createGain(); g.connect(ac.destination); chime(ac.currentTime + 0.02, g); } catch (e) { /* sem áudio */ } } }
     alarm = null;
@@ -63,21 +68,37 @@
     bar.classList.toggle('end', !left);
     if (!left && !rang) {
       rang = true; ring();
-      clearTimeout(hideTm); hideTm = setTimeout(stop, 15000);
+      clearTimeout(hideTm); hideTm = setTimeout(() => stop(), 15000);
     }
   }
 
+  // nativeRest: o descanso também está agendado no Android (alarme + notificação com contagem).
+  let nativeRest = false, restLabel = '';
+  const dev = () => window.CGDevice;
+  function arm() {
+    nativeRest = !!(dev() && dev().restStart(end, restLabel));
+    if (nativeRest) cancelAlarm(); else schedule();
+  }
   function start(seconds, label) {
     if (!seconds) return;
-    end = Date.now() + seconds * 1000; rang = false;
+    end = Date.now() + seconds * 1000; rang = false; restLabel = label || '';
     lab.textContent = 'Descanso · ' + label;
     bar.hidden = false; document.body.classList.add('timing');
-    clearTimeout(hideTm); clearInterval(tick); tick = setInterval(draw, 250); schedule(); draw();
+    clearTimeout(hideTm); clearInterval(tick); tick = setInterval(draw, 250); arm(); draw();
   }
-  function add(s) { if (!end) return; end = Math.max(Date.now(), end + s * 1000); if (end > Date.now()) { rang = false; schedule(); } draw(); }
-  function stop() {
+  function add(s) { if (!end) return; end = Math.max(Date.now(), end + s * 1000); if (end > Date.now()) { rang = false; arm(); } draw(); }
+  function stop(fromNative) {
+    if (nativeRest && fromNative !== true && dev()) dev().restCancel();
+    nativeRest = false;
     clearInterval(tick); clearTimeout(hideTm); cancelAlarm(); end = 0; bar.hidden = true; document.body.classList.remove('timing');
     try { if (ac && ac.state === 'running') ac.suspend(); } catch (e) { /* já parado */ }
+  }
+  // O Android avisou: +15 s ou Pular na notificação, ou o alarme tocou. Ao voltar para o app, confere o estado.
+  function sync(nativeEnd, finished, onResume) {
+    if (!end || !nativeRest) return;
+    if (nativeEnd > 0) { if (Math.abs(nativeEnd - end) > 400) { end = nativeEnd; rang = false; draw(); } return; }
+    if (finished || end <= Date.now() + 1000) { end = Math.min(end, Date.now()); draw(); return; }
+    if (onResume || !finished) stop(true); // pulou pela notificação
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && end) draw(); });
 
@@ -86,12 +107,13 @@
   let lock = null, lastSet = 0, idleTm = null;
   async function wakeOn(keep) {
     if (!keep) { lastSet = Date.now(); clearTimeout(idleTm); idleTm = setTimeout(wakeOff, IDLE_MS); }
+    if (window.CGDevice) CGDevice.keepAwake(true);
     try { if (!lock && navigator.wakeLock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); } } catch (e) { lock = null; }
   }
-  function wakeOff() { clearTimeout(idleTm); lastSet = 0; try { if (lock) lock.release(); } catch (e) { /* já solto */ } lock = null; }
+  function wakeOff() { if (window.CGDevice) CGDevice.keepAwake(false); clearTimeout(idleTm); lastSet = 0; try { if (lock) lock.release(); } catch (e) { /* já solto */ } lock = null; }
   // O sistema solta a trava quando o app vai para segundo plano: pega de novo ao voltar, se o treino estiver em andamento.
   document.addEventListener('visibilitychange', () => { if (!document.hidden && lastSet && Date.now() - lastSet < IDLE_MS) wakeOn(true); });
   window.CGWake = { on: () => wakeOn(false), off: wakeOff, active: () => !!lastSet };
 
-  window.CGTimer = { start, stop, left: () => (end ? Math.max(0, Math.round((end - Date.now()) / 1000)) : null) };
+  window.CGTimer = { start, stop: () => stop(), sync, left: () => (end ? Math.max(0, Math.round((end - Date.now()) / 1000)) : null) };
 })();

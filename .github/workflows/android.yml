@@ -23,6 +23,8 @@ concurrency:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.prep.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -62,6 +64,7 @@ jobs:
 
       # A keystore só existe nos secrets do repositório. Sem ela, o CI gera um APK debug.
       - name: Prepara assinatura e versão
+        id: prep
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           INPUT_VERSAO: ${{ github.event.inputs.versao }}
@@ -71,13 +74,14 @@ jobs:
             echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
             echo "BUILD_TYPE=release" >> "$GITHUB_ENV"
           else
-            echo "::warning::Sem ANDROID_KEYSTORE_BASE64: gerando APK debug. Cada build debug do CI tem uma assinatura diferente, então atualizar exige desinstalar."
+            echo "::warning::Sem ANDROID_KEYSTORE_BASE64: gerando APK debug (assinatura do cache, que o GitHub pode apagar). Cadastre a keystore nos secrets para ter assinatura permanente."
             echo "BUILD_TYPE=debug" >> "$GITHUB_ENV"
           fi
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then TAG="$GITHUB_REF_NAME"; else TAG="${INPUT_VERSAO}"; fi
           if [ -n "$TAG" ]; then
             case "$TAG" in v[0-9]*) ;; *) echo "::error::A versão precisa começar com v e um número, ex.: v0.1.0"; exit 1;; esac
             echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
             echo "VERSION_NAME=${TAG#v}" >> "$GITHUB_ENV"
           else
             echo "VERSION_NAME=0.0.0-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
@@ -99,6 +103,9 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ "$BUILD_TYPE" = "release" ]; then
+            # Só dois secrets são obrigatórios: a keystore (base64) e a senha. Apelido e senha da chave têm padrão.
+            export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-caderno}"
+            export ANDROID_KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
             ./gradlew --no-daemon assembleRelease
           else
             # Assina o debug com a chave fixa do cache, sem mudar o projeto Android (que entra no hash nativo).
@@ -127,11 +134,53 @@ jobs:
             dist/web-*.json
           if-no-files-found: error
 
+  # Teste de fumaça num emulador Android de verdade (só ao publicar): instala, abre, atalho, voltar,
+  # descanso com alarme e notificação. A Release só sai se ele passar.
+  emulador:
+    needs: apk
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: caderno-de-cargas-apk
+          path: dist
+      - name: Liga a aceleração (KVM)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/emulator-smoke.sh "$(ls dist/*.apk | head -1)" emulador
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: emulador
+          path: emulador
+          if-no-files-found: ignore
+
+  release:
+    needs: [apk, emulador]
+    if: needs.apk.outputs.tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: caderno-de-cargas-apk
+          path: dist
       - name: Anexa o APK à Release
-        if: env.RELEASE_TAG != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.apk.outputs.tag }}
         run: |
           # Sem a tag, o gh cria a tag no commit compilado.
-          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "Caderno de Cargas $RELEASE_TAG" --generate-notes
-          gh release upload "$RELEASE_TAG" dist/*.apk dist/web-*.json --clobber
+          gh release view "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Caderno de Cargas $RELEASE_TAG" --generate-notes
+          gh release upload "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" dist/*.apk dist/web-*.json --clobber

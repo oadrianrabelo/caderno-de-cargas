@@ -472,7 +472,33 @@
     });
   }
 
+  // APK novo: prévia da imagem com Compartilhar e Salvar na galeria.
+  function choose(canvas, name) {
+    const url = canvas.toDataURL('image/png'), data = url.split(',')[1];
+    let ov = document.getElementById('tipov');
+    if (!ov) { ov = mk('div', 'tipov'); ov.id = 'tipov'; ov.addEventListener('click', (e) => { if (e.target === ov) ov.hidden = true; }); document.body.appendChild(ov); }
+    ov.textContent = '';
+    const box = mk('div', 'tipbox imgbox'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
+    const img = mk('img'); img.src = url; img.alt = 'Prévia da imagem';
+    img.style.cssText = 'display:block;width:100%;max-height:52vh;object-fit:contain;border-radius:16px;background:var(--card2);margin:0 0 4px';
+    const sh = button('btn pri', 'Compartilhar'), gal = button('btn', 'Salvar na galeria'), cl = button('btn', 'Fechar');
+    sh.addEventListener('click', () => { ov.hidden = true; send(canvas, name); });
+    gal.addEventListener('click', () => {
+      gal.disabled = true;
+      CGDevice.saveImage(data, name).then(() => { ov.hidden = true; app.status('Imagem salva na galeria (Caderno de Cargas)'); },
+        () => { gal.disabled = false; app.status('Não consegui salvar na galeria'); });
+    });
+    cl.addEventListener('click', () => { ov.hidden = true; });
+    box.append(mk('h2', null, 'Imagem pronta'), img, sh, gal, cl);
+    ov.appendChild(box); ov.hidden = false;
+  }
+
   function share(canvas, name) {
+    if (window.CGDevice && CGDevice.available && CGDevice.galleryOk) { choose(canvas, name); return; }
+    send(canvas, name);
+  }
+
+  function send(canvas, name) {
     app.status('Gerando imagem…');
     if (window.CGNative && CGNative.shareImage) {
       CGNative.shareImage(name, canvas.toDataURL('image/png').split(',')[1]).then(app.status, () => app.status('Não consegui compartilhar a imagem'));

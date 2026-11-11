@@ -1,7 +1,7 @@
 // Acabamento da interface: folhas (Progresso, Nuvem, Programas, Versão, Mais) uma por vez, com fundo
 // escurecido e botão de fechar; indicador deslizante nas abas dos dias. Só comportamento visual.
 (function () {
-  const SHEETS = ['progress', 'cloud', 'programs', 'version', 'look', 'more'];
+  const SHEETS = ['progress', 'cloud', 'programs', 'version', 'look', 'remind', 'more'];
   const els = () => SHEETS.map((id) => document.getElementById(id)).filter(Boolean);
 
   const scrim = document.createElement('div'); scrim.className = 'scrim'; scrim.id = 'scrim'; scrim.hidden = true;
@@ -35,6 +35,16 @@
   scrim.addEventListener('click', closeAll);
   close.addEventListener('click', closeAll);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); });
+  // Botão voltar do Android (APK novo): fecha o que estiver por cima, um de cada vez. Devolve false quando
+  // não há nada aberto (aí o app vai para o fundo).
+  window.CGBack = () => {
+    const tip = document.getElementById('tipov'); if (tip && !tip.hidden) { tip.hidden = true; return true; }
+    const cele = document.getElementById('cele'); if (cele) { cele.remove(); return true; }
+    if (els().some((el) => !el.hidden)) { closeAll(); return true; }
+    if (document.body.classList.contains('focus')) { const f = document.getElementById('bfocus'); if (f) { f.click(); return true; } }
+    const ed = document.getElementById('bedit'); if (ed && ed.classList.contains('pri')) { ed.click(); return true; }
+    return false;
+  };
   // Editar e Modo foco mudam a tela de baixo: fecham a folha aberta para não ficar uma por cima da outra.
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#bedit, #bfocus')) return;

@@ -283,6 +283,79 @@ test('app no navegador e no Capacitor simulado', { skip, timeout: 120000 }, asyn
       await ctx.close();
     });
 
+    await t.test('APK novo (plugin Caderno simulado): descanso nativo, barras, voltar, atalhos, lembrete e galeria', async () => {
+      const ctx = await browser.newContext({ colorScheme: 'dark' });
+      await ctx.addInitScript(FAKE_CAP);
+      await ctx.addInitScript(() => {
+        const L = {}, calls = [];
+        window.__calls = calls; window.__emit = (n, d) => (L[n] || []).forEach((f) => f(d));
+        const rec = (name, ret) => (o) => { calls.push([name, o]); return Promise.resolve(typeof ret === 'function' ? ret(o) : ret || {}); };
+        let rem = { on: false, days: [1, 3, 5], hour: 18, minute: 0 }, restEnd = 0;
+        window.Capacitor.Plugins.Caderno = {
+          addListener: (n, f) => { (L[n] = L[n] || []).push(f); return Promise.resolve({ remove() {} }); },
+          info: rec('info', { sdk: 34, notifications: true, galleryOk: true }),
+          launchAction: rec('launchAction', { action: 'progresso' }),
+          requestNotifications: rec('requestNotifications', { granted: true }),
+          restStart: rec('restStart', (o) => { restEnd = o.endAt; return {}; }),
+          restCancel: rec('restCancel', () => { restEnd = 0; return {}; }),
+          restState: rec('restState', () => ({ endAt: restEnd })),
+          haptic: rec('haptic'), keepAwake: rec('keepAwake'), setBars: rec('setBars'), trained: rec('trained'),
+          reminderGet: rec('reminderGet', () => rem), reminderSet: rec('reminderSet', (o) => (rem = Object.assign({}, o))),
+          saveImage: rec('saveImage'), installApk: rec('installApk')
+        };
+      });
+      const p = await ctx.newPage(); watch(p);
+      await p.goto(url);
+      const calls = (n) => p.evaluate((n) => window.__calls.filter((c) => c[0] === n).map((c) => c[1]), n);
+      // Atalho "Progresso" abriu o painel; barras na cor do fundo do tema escuro.
+      await p.waitForSelector('#progress:not([hidden])');
+      assert.deepEqual((await calls('setBars')).pop(), { color: '#0c0d0f', dark: true });
+      // Voltar fecha a folha; sem nada aberto, devolve false (o app vai para o fundo).
+      assert.equal(await p.evaluate(() => CGBack()), true);
+      assert.equal(await p.isVisible('#progress'), false);
+      assert.equal(await p.evaluate(() => CGBack()), false);
+      // Marcar série: vibração de confirmação, descanso agendado no Android, tela acesa, dia do treino avisado.
+      await fill(p, '50', '10');
+      await p.waitForSelector('#timer:not([hidden])');
+      const rs = (await calls('restStart'))[0];
+      assert.ok(rs && rs.endAt > Date.now() && rs.label.length > 0);
+      assert.deepEqual((await calls('haptic')).pop(), { kind: 'confirm' });
+      assert.deepEqual((await calls('keepAwake')).pop(), { on: true });
+      assert.ok((await calls('trained')).some((o) => /^\d{4}-\d{2}-\d{2}$/.test(o.day)));
+      assert.equal((await calls('requestNotifications')).length, 1);
+      // +15 s na notificação: o cronômetro da tela acompanha. Pular: some.
+      const before = await p.evaluate(() => CGTimer.left());
+      await p.evaluate((e) => window.__emit('rest', { endAt: e + 15000, finished: false }), rs.endAt);
+      assert.ok(await p.evaluate(() => CGTimer.left()) >= before + 13);
+      await p.evaluate(() => window.__emit('rest', { endAt: 0, finished: false }));
+      assert.equal(await p.isVisible('#timer'), false);
+      assert.equal((await calls('restCancel')).length, 0); // quem pulou foi o Android: não manda cancelar de volta
+      // Parar pelo ✕ da tela cancela o alarme nativo.
+      await p.locator('.set:not(.warm) >> nth=1').locator('input').nth(0).fill('50');
+      await p.locator('.set:not(.warm) >> nth=1').locator('input').nth(1).fill('9');
+      await p.locator('.set:not(.warm) >> nth=1').locator('.ck').click();
+      await p.click('#timer [aria-label="Parar descanso"]');
+      assert.equal((await calls('restCancel')).length, 1);
+      // Lembrete: folha no menu Mais, liga e escolhe dias.
+      await tool(p, '#bremind');
+      await p.waitForSelector('#remind:not([hidden])');
+      await p.click('#remind .lseg >> text="Ligado"');
+      await p.click('#remind .ldays >> text=Sáb');
+      await p.waitForTimeout(300);
+      const rset = (await calls('reminderSet')).pop();
+      assert.equal(rset.on, true);
+      assert.deepEqual(rset.days, [1, 3, 5, 6]);
+      await shut(p);
+      // Imagem: prévia com Compartilhar e Salvar na galeria.
+      await p.click('#bprog');
+      await p.click('#progress >> text=Imagem da semana');
+      await p.waitForSelector('.imgbox img');
+      await p.click('.imgbox >> text=Salvar na galeria');
+      const sv = (await calls('saveImage')).pop();
+      assert.ok(sv && /^semana-.*\.png$/.test(sv.name) && sv.data.length > 1000);
+      await ctx.close();
+    });
+
     await t.test('painéis começam fechados', async () => {
       const ctx = await browser.newContext(); const p = await ctx.newPage(); watch(p);
       await p.goto(url);

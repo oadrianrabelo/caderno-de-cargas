@@ -191,8 +191,24 @@ function applyBackup(text) {
   logs = o.logs; custom = o.custom;
   if (o.programs) programs = o.programs; // backups antigos não têm programas: mantém os do aparelho
   if (o.extra) setExtra(o.extra);
+  if (o.prefs) applyLookPrefs(o.prefs);
   applyProgram(); flushNow(); pickStart(); render();
   return true;
+}
+// Aparência (tema e fontes) vai junto no backup, para voltar igual ao reinstalar.
+function lookPrefs() {
+  const p = {};
+  try { const l = JSON.parse(localStorage.getItem('cg:look')); if (l && typeof l === 'object') p.look = l; } catch (e) { /* sem aparência salva */ }
+  const t = LS.get('cg:theme'); if (t) p.theme = t;
+  return p;
+}
+function applyLookPrefs(p) {
+  if (p.look) { LS.set('cg:look', JSON.stringify(p.look)); if (window.CGLook) CGLook.set({}); }
+  if (p.theme) {
+    LS.set('cg:theme', p.theme);
+    if (p.theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = p.theme;
+    document.dispatchEvent(new CustomEvent('cg:theme'));
+  }
 }
 // Detalhes do programa importados pelo usuário (aquecimento, RPE, técnica): só no aparelho.
 function setExtra(extra) { window.BTS_EXTRA = extra; LS.set('cg:extra', JSON.stringify(extra)); }
@@ -211,7 +227,7 @@ const progDay = () => prog.days.find((d) => d.id === day);
 // Ponte para os scripts opcionais (native.js, sync.js). Sem eles o app funciona igual.
 const CGApp = window.CGApp = {
   saved: [],
-  snapshot: () => CG.serializeBackup(logs, custom, programs, window.BTS_EXTRA),
+  snapshot: () => CG.serializeBackup(logs, custom, programs, window.BTS_EXTRA, lookPrefs()),
   restore: applyBackup,
   // render() já cria o treino do dia vazio (t = 0); só conta o que foi preenchido.
   isEmpty: () => !Object.keys(custom).length && !Object.keys(programs.list || {}).length && Object.values(logs).every((l) => !l || !l.t),
@@ -657,6 +673,7 @@ setStatus(storageOk ? 'Pronto' : 'Sem armazenamento');
 <script src="changelog.js"></script>
 <script src="prefs.js"></script>
 <script src="update.js"></script>
+<script src="device.js"></script>
 <script src="menu.js"></script>
 <script src="ui.js"></script>
 </body>

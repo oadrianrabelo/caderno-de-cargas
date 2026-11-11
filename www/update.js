@@ -147,7 +147,18 @@
     const pick = choose(cur, got.list, info.bad);
     // Atualização web primeiro (não precisa de APK); o aviso de APK só se não houver nada mais novo compatível.
     const what = pick.web ? 'web' : pick.apk ? 'apk' : 'none', remote = pick.web || pick.apk;
-    if (what === 'apk') {
+    if (what === 'apk' && remote.apk && window.CGDevice && CGDevice.available) {
+      // APK com assinatura permanente: instala por cima, sem perder dados. O app baixa e abre o instalador.
+      const install = () => {
+        app.status('Baixando o APK ' + remote.version + '…');
+        app.flush();
+        CGDevice.installApk(remote.apk, 'caderno-' + remote.version + '.apk').then(() => app.status('Abrindo o instalador…'), (e) => {
+          const m = String((e && e.message) || e);
+          app.status(/permission/.test(m) ? 'Permita "instalar apps desconhecidos" para o Caderno e toque de novo' : 'Não consegui baixar o APK');
+        });
+      };
+      banner('Nova versão ' + remote.version + ' do app (APK). Instala por cima da atual, sem perder seus dados.', 'Baixar e instalar', install);
+    } else if (what === 'apk') {
       banner('Nova versão ' + remote.version + ' do app, que precisa instalar o APK. Se o Android pedir para desinstalar o app antigo, ' +
         'os dados serão apagados: exporte o backup antes e importe depois de instalar.', remote.apk ? 'Baixar APK' : null, null, remote.apk);
       const n = document.getElementById('updnote'), ex = document.createElement('button');

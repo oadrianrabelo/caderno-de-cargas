@@ -4,7 +4,7 @@
   const tools = document.querySelector('.tools');
   if (!tools) return;
   const GROUPS = [
-    ['Treino', ['bskip', 'bprogs', 'bplates']],
+    ['Treino', ['bskip', 'bprogs', 'bplates', 'bremind']],
     ['Dados', ['bexp', 'bimp', 'bcsv', 'bcloud']],
     ['App', ['btheme', 'bgloss', 'bnews', 'bver']]
   ];

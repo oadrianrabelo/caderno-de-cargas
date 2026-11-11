@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="hoje" android:enabled="true" android:icon="@drawable/ic_sc_hoje"
+        android:shortcutShortLabel="@string/sc_hoje_curto" android:shortcutLongLabel="@string/sc_hoje_longo">
+        <intent android:action="android.intent.action.VIEW" android:data="caderno://hoje"
+            android:targetPackage="com.oadrianrabelo.cadernodecargas" android:targetClass="com.oadrianrabelo.cadernodecargas.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="progresso" android:enabled="true" android:icon="@drawable/ic_sc_progresso"
+        android:shortcutShortLabel="@string/sc_prog_curto" android:shortcutLongLabel="@string/sc_prog_longo">
+        <intent android:action="android.intent.action.VIEW" android:data="caderno://progresso"
+            android:targetPackage="com.oadrianrabelo.cadernodecargas" android:targetClass="com.oadrianrabelo.cadernodecargas.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="foco" android:enabled="true" android:icon="@drawable/ic_sc_foco"
+        android:shortcutShortLabel="@string/sc_foco_curto" android:shortcutLongLabel="@string/sc_foco_longo">
+        <intent android:action="android.intent.action.VIEW" android:data="caderno://foco"
+            android:targetPackage="com.oadrianrabelo.cadernodecargas" android:targetClass="com.oadrianrabelo.cadernodecargas.MainActivity" />
+    </shortcut>
+</shortcuts>

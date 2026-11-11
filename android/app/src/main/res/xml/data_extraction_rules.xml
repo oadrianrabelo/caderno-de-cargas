@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: mesmas regras para o backup na nuvem e para a transferência entre aparelhos. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="app_webview/Default/Cache" />
+        <exclude domain="root" path="app_webview/Default/Code Cache" />
+        <exclude domain="root" path="app_webview/Default/GPUCache" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="app_webview/Default/Cache" />
+        <exclude domain="root" path="app_webview/Default/Code Cache" />
+        <exclude domain="root" path="app_webview/Default/GPUCache" />
+    </device-transfer>
+</data-extraction-rules>

@@ -2,6 +2,21 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.5.0 (2026-11-11)
+
+- APK novo, com assinatura permanente: as próximas versões de APK instalam por cima, sem desinstalar e sem perder dados (Mais → Versão → Baixar e instalar).
+- Fim do descanso com a tela bloqueada: o Android vibra e avisa na hora certa, mesmo com o app em segundo plano.
+- Contagem do descanso na tela de bloqueio, com os botões +15 s e Pular.
+- Lembrete de treino (Mais → Lembrete de treino): escolha os dias e o horário; só avisa se você ainda não treinou no dia.
+- Botão voltar do Android fecha a folha ou janela aberta, sai do modo foco e da edição; sem nada aberto, o app vai para o fundo (o descanso continua).
+- Tela acesa durante o treino pelo próprio Android (mais confiável).
+- Barras do sistema (horário e navegação) na cor do tema escolhido.
+- Vibração leve ao marcar série, ao bater recorde e no aviso da técnica da última série.
+- Atalhos no ícone do app (segure o ícone): Treino de hoje, Progresso e Modo foco.
+- Imagens: prévia com Compartilhar e Salvar na galeria (pasta Caderno de Cargas).
+- Ícone e tela de abertura novos, no visual do app (e ícone monocromático para o tema do Android 13+).
+- Backup automático do Android ligado para os dados do app, e a Aparência (tema e fontes) agora vai junto no backup.
+
 ## v0.4.3 (2026-11-11)
 
 - Imagens de compartilhar refeitas no visual novo: seguem o tema e as fontes da Aparência (claro ou escuro), com cartões arredondados, cor do dia, indicadores em blocos e a cor da técnica na última série.

@@ -357,10 +357,12 @@
     return { id: newId('p'), name, weeks: Math.max(1, Math.min(52, Math.round(weeks) || 1)), days };
   }
 
-  function serializeBackup(logs, custom, programs, extra) {
+  // prefs: aparência do app ({ look, theme }), para voltar igual ao reinstalar.
+  function serializeBackup(logs, custom, programs, extra, prefs) {
     const o = { v: 1, logs, custom };
     if (programs && programs.list && Object.keys(programs.list).length) o.programs = programs;
     if (extra && Object.keys(extra).length) o.extra = extra;
+    if (prefs && (prefs.look || prefs.theme)) o.prefs = prefs;
     return JSON.stringify(o);
   }
 
@@ -377,7 +379,14 @@
     if (!o || !o.logs || typeof o.logs !== 'object' || Array.isArray(o.logs)) return null;
     const programs = o.programs && typeof o.programs === 'object' && o.programs.list && typeof o.programs.list === 'object' ? o.programs : null;
     const extra = o.extra && typeof o.extra === 'object' ? o.extra : null;
-    return { logs: o.logs, custom: o.custom && typeof o.custom === 'object' ? o.custom : {}, programs, extra };
+    let prefs = null;
+    if (o.prefs && typeof o.prefs === 'object' && !Array.isArray(o.prefs)) {
+      prefs = {};
+      if (o.prefs.look && typeof o.prefs.look === 'object' && !Array.isArray(o.prefs.look)) prefs.look = o.prefs.look;
+      if (['auto', 'light', 'dark'].indexOf(o.prefs.theme) >= 0) prefs.theme = o.prefs.theme;
+      if (!prefs.look && !prefs.theme) prefs = null;
+    }
+    return { logs: o.logs, custom: o.custom && typeof o.custom === 'object' ? o.custom : {}, programs, extra, prefs };
   }
 
   function backupFileName(d) {

@@ -1,5 +1,19 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.5.0', date: '2026-11-11', items: [
+    'APK novo, com assinatura permanente: as próximas versões de APK instalam por cima, sem desinstalar e sem perder dados (Mais → Versão → Baixar e instalar).',
+    'Fim do descanso com a tela bloqueada: o Android vibra e avisa na hora certa, mesmo com o app em segundo plano.',
+    'Contagem do descanso na tela de bloqueio, com os botões +15 s e Pular.',
+    'Lembrete de treino (Mais → Lembrete de treino): escolha os dias e o horário; só avisa se você ainda não treinou no dia.',
+    'Botão voltar do Android fecha a folha ou janela aberta, sai do modo foco e da edição; sem nada aberto, o app vai para o fundo (o descanso continua).',
+    'Tela acesa durante o treino pelo próprio Android (mais confiável).',
+    'Barras do sistema (horário e navegação) na cor do tema escolhido.',
+    'Vibração leve ao marcar série, ao bater recorde e no aviso da técnica da última série.',
+    'Atalhos no ícone do app (segure o ícone): Treino de hoje, Progresso e Modo foco.',
+    'Imagens: prévia com Compartilhar e Salvar na galeria (pasta Caderno de Cargas).',
+    'Ícone e tela de abertura novos, no visual do app (e ícone monocromático para o tema do Android 13+).',
+    'Backup automático do Android ligado para os dados do app, e a Aparência (tema e fontes) agora vai junto no backup.'
+  ] },
   { version: 'v0.4.3', date: '2026-11-11', items: [
     'Imagens de compartilhar refeitas no visual novo: seguem o tema e as fontes da Aparência (claro ou escuro), com cartões arredondados, cor do dia, indicadores em blocos e a cor da técnica na última série.',
     'Imagem do treino: séries feitas, volume e duração no topo, exercícios em lista e a anotação do treino inteira, num bloco próprio.',
