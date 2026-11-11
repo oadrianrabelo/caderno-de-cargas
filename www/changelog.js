@@ -1,5 +1,12 @@
 // Novidades por versão (mais recente primeiro). Fonte do CHANGELOG.md (npm run changelog).
 window.CG_CHANGELOG = [
+  { version: 'v0.4.3', date: '2026-11-11', items: [
+    'Imagens de compartilhar refeitas no visual novo: seguem o tema e as fontes da Aparência (claro ou escuro), com cartões arredondados, cor do dia, indicadores em blocos e a cor da técnica na última série.',
+    'Imagem do treino: séries feitas, volume e duração no topo, exercícios em lista e a anotação do treino inteira, num bloco próprio.',
+    'Imagem do progresso: grade do programa e evolução de cada exercício com minigráfico.',
+    'Correção: a etiqueta da técnica da última série (ex.: Along. estático) ficava atrás do campo de carga. Agora fica numa faixa no topo da série, com o nome inteiro.',
+    'Alarme do descanso: o toque (agora em dois tons, mais suave) é agendado no início do descanso, para tocar mesmo se o celular deixar o app lento com a tela apagada.'
+  ] },
   { version: 'v0.4.2', date: '2026-11-10', items: [
     'Correção: com uma folha aberta (Progresso, Programas, Aparência…), tocar em Editar ou Modo foco mudava a tela por baixo e a folha continuava por cima. Agora a folha fecha antes.',
     'Correção: abrir uma folha fecha a janela de dica (Glossário, Anilhas, Histórico) que tivesse ficado aberta.',

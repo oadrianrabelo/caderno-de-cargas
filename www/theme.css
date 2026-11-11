@@ -144,7 +144,11 @@ html .set.rec .sl::after { content: ""; display: block; width: 13px; height: 13p
   -webkit-mask: var(--i-star) center / contain no-repeat; mask: var(--i-star) center / contain no-repeat; }
 /* Última série com técnica */
 html .set.last { border-radius: var(--r-md); padding: 8px 6px; margin: 2px -6px; box-shadow: none; background: color-mix(in srgb, var(--tec) 10%, transparent); outline: 1px solid color-mix(in srgb, var(--tec) 35%, transparent); }
-html .set.last .sl .tq { border-radius: 999px; padding: 3px 5px; font: 700 8.5px/1 var(--f-body); letter-spacing: .04em; }
+/* Técnica da última série: faixa no topo da linha (na coluna do S2 não cabia e ficava atrás do campo). */
+html .set.last { padding-top: 34px; }
+html .set.last .sl .tq { position: absolute; top: 9px; left: 8px; margin: 0; display: inline-block; white-space: nowrap; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis;
+  border-radius: 999px; padding: 5px 10px; font: 700 10px/1 var(--f-body); letter-spacing: .07em; }
+html .set.last .sl .tq::before { content: "Última série · "; font-weight: 600; opacity: .78; }
 html .set.last .fld input { border-color: transparent; }
 
 html .tip { font-size: 13px; color: var(--mute); margin: 16px 2px 0; }

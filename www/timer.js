@@ -24,20 +24,37 @@
   let end = 0, tick = null, hideTm = null, rang = false;
   const fmt = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 
-  function beep() {
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      const ac = new AC();
-      [0, 0.25, 0.5].forEach((t) => {
-        const o = ac.createOscillator(), g = ac.createGain();
-        o.frequency.value = 880; o.connect(g); g.connect(ac.destination);
-        g.gain.setValueAtTime(0.25, ac.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + t + 0.2);
-        o.start(ac.currentTime + t); o.stop(ac.currentTime + t + 0.2);
-      });
-      setTimeout(() => ac.close && ac.close(), 1200);
-    } catch (e) { /* sem áudio */ }
-    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) { /* sem vibração */ }
+  // Alarme agendado no relógio do próprio áudio quando o descanso começa (e reagendado no −15/+15): toca no
+  // fim mesmo que o JavaScript fique lento com a tela apagada. Toque de dois tons, suave.
+  let ac = null, alarm = null, sleepTm = null;
+  function audio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { if (!ac || ac.state === 'closed') ac = new AC(); if (ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; }
+    return ac;
+  }
+  function chime(at, out) {
+    [[0, 784], [0.16, 1175], [0.7, 784], [0.86, 1175]].forEach(([t, f]) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(out);
+      g.gain.setValueAtTime(0.0001, at + t); g.gain.exponentialRampToValueAtTime(0.32, at + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + t + 0.5);
+      o.start(at + t); o.stop(at + t + 0.55);
+    });
+  }
+  function cancelAlarm() { if (alarm) { try { alarm.disconnect(); } catch (e) { /* já solto */ } alarm = null; } }
+  function schedule() {
+    cancelAlarm(); clearTimeout(sleepTm);
+    const left = (end - Date.now()) / 1000;
+    if (left <= 0 || !audio()) return;
+    try { alarm = ac.createGain(); alarm.connect(ac.destination); chime(ac.currentTime + left, alarm); } catch (e) { alarm = null; }
+  }
+  function ring() {
+    // Se o agendado não deu (sem áudio ou contexto parado), toca agora.
+    if (!alarm || !ac || ac.state !== 'running') { if (audio()) { try { const g = ac.createGain(); g.connect(ac.destination); chime(ac.currentTime + 0.02, g); } catch (e) { /* sem áudio */ } } }
+    alarm = null;
+    try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) { /* sem vibração */ }
+    clearTimeout(sleepTm); sleepTm = setTimeout(() => { try { if (ac && !end) ac.suspend(); } catch (e) { /* já parado */ } }, 3000);
   }
 
   function draw() {
@@ -45,7 +62,7 @@
     big.textContent = left ? fmt(left) : 'Próxima série!';
     bar.classList.toggle('end', !left);
     if (!left && !rang) {
-      rang = true; beep();
+      rang = true; ring();
       clearTimeout(hideTm); hideTm = setTimeout(stop, 15000);
     }
   }
@@ -55,10 +72,13 @@
     end = Date.now() + seconds * 1000; rang = false;
     lab.textContent = 'Descanso · ' + label;
     bar.hidden = false; document.body.classList.add('timing');
-    clearTimeout(hideTm); clearInterval(tick); tick = setInterval(draw, 250); draw();
+    clearTimeout(hideTm); clearInterval(tick); tick = setInterval(draw, 250); schedule(); draw();
   }
-  function add(s) { if (!end) return; end = Math.max(Date.now(), end + s * 1000); if (end > Date.now()) rang = false; draw(); }
-  function stop() { clearInterval(tick); clearTimeout(hideTm); end = 0; bar.hidden = true; document.body.classList.remove('timing'); }
+  function add(s) { if (!end) return; end = Math.max(Date.now(), end + s * 1000); if (end > Date.now()) { rang = false; schedule(); } draw(); }
+  function stop() {
+    clearInterval(tick); clearTimeout(hideTm); cancelAlarm(); end = 0; bar.hidden = true; document.body.classList.remove('timing');
+    try { if (ac && ac.state === 'running') ac.suspend(); } catch (e) { /* já parado */ }
+  }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && end) draw(); });
 
   // Tela acesa só durante o treino: liga ao marcar uma série; desliga ao concluir ou após 30 min sem marcar nada.

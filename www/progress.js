@@ -163,22 +163,46 @@
     panel.appendChild(mk('h3', null, 'Compartilhar'));
     const r = mk('div', 'r');
     const b1 = button('btn pri', 'Imagem do treino (' + v.NAMES[v.day] + ' · S' + v.week + ')'), b2 = button('btn', 'Imagem do progresso'), b3 = button('btn', 'Imagem da semana');
-    b1.addEventListener('click', () => share(workoutCard(v), 'treino-' + CG.isoDay(Date.now()) + '.png'));
-    b2.addEventListener('click', () => share(progressCard(v, sum, prog), 'progresso-' + CG.isoDay(Date.now()) + '.png'));
-    b3.addEventListener('click', () => share(weekCard(v, wk), 'semana-' + CG.isoDay(wk.start) + '.png'));
+    b1.addEventListener('click', () => fontsReady().then(() => share(workoutCard(v), 'treino-' + CG.isoDay(Date.now()) + '.png')));
+    b2.addEventListener('click', () => fontsReady().then(() => share(progressCard(v, sum, prog), 'progresso-' + CG.isoDay(Date.now()) + '.png')));
+    b3.addEventListener('click', () => fontsReady().then(() => share(weekCard(v, wk), 'semana-' + CG.isoDay(wk.start) + '.png')));
     r.append(b1, b2, b3);
     panel.appendChild(r);
   }
 
   // ---------- Imagens (canvas) ----------
-  const C = { bg: '#0e1217', card: '#171d24', ink: '#eaeef2', mute: '#96a1ad', line: '#2a323b', accent: '#1f4fd8', accent2: '#7b9cff', done: '#5fd593' };
-  const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', COND = '"Roboto Condensed", "Arial Narrow", sans-serif-condensed, ' + FONT;
-  const W = 1080, PAD = 64;
+  // Seguem a Aparência escolhida: cores do tema (claro ou escuro), cor do dia e as fontes de títulos, números e texto.
+  const W = 1080, PAD = 72;
   // WebViews antigos não têm roundRect: usa retângulo comum.
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
   }
-
+  function theme() {
+    const cs = getComputedStyle(document.documentElement), g = (n, f) => cs.getPropertyValue(n).trim() || f;
+    const t = document.documentElement.dataset.theme;
+    const dark = t ? t === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    const accent = g('--accent', '#8f6328');
+    return {
+      dark, bg: g('--bg', '#f2efe9'), card: g('--card', '#fffdf9'), card2: g('--card2', '#f7f4ee'), ink: g('--ink', '#18191c'),
+      mute: g('--mute', '#6b6d73'), faint: g('--faint', '#a3a39f'), line: g('--line2', 'rgba(0,0,0,.14)'), accent,
+      done: g('--done', '#2e7a55'), doneBg: g('--done-bg', 'rgba(46,122,85,.14)'), day: g('--day', accent),
+      fd: g('--f-display', 'system-ui, sans-serif'), fn: g('--f-num', 'system-ui, sans-serif'), fb: g('--f-body', 'system-ui, sans-serif')
+    };
+  }
+  // Garante as fontes carregadas antes de desenhar (canvas não espera a fonte chegar).
+  function fontsReady() {
+    if (!document.fonts || !document.fonts.load) return Promise.resolve();
+    const th = theme(), sample = 'Aa0123456789×→kg';
+    const want = [[700, th.fd], [600, th.fd], [700, th.fn], [600, th.fn], [500, th.fb], [600, th.fb]];
+    return Promise.all(want.map(([w, f]) => document.fonts.load(w + ' 40px ' + f, sample).catch(() => null))).then(() => null, () => null);
+  }
+  const alpha = (c, a) => {
+    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
+    if (!m) return c;
+    let h = m[1]; if (h.length === 3) h = h.split('').map((x) => x + x).join('');
+    return 'rgba(' + [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',') + ',' + a + ')';
+  };
+  const spacing = (ctx, px) => { if ('letterSpacing' in ctx) ctx.letterSpacing = px + 'px'; };
   function wrap(ctx, text, maxW) {
     const words = String(text).split(/\s+/), lines = [];
     let cur = '';
@@ -189,192 +213,262 @@
     if (cur) lines.push(cur);
     return lines;
   }
+  function ellipsis(ctx, text, maxW) {
+    let t = String(text);
+    if (ctx.measureText(t).width <= maxW) return t;
+    while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+    return t.trim() + '…';
+  }
+  // Tamanho de fonte que cabe na largura.
+  function fit(ctx, text, weight, size, min, family, maxW) {
+    do { ctx.font = weight + ' ' + size + 'px ' + family; size -= 2; } while (ctx.measureText(text).width > maxW && size > min);
+  }
+  function box(ctx, x, y, w, h, r, fill, stroke) {
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.lineWidth = 2; ctx.strokeStyle = stroke; ctx.stroke(); }
+  }
 
   // Desenha em duas passadas: a primeira só mede a altura, a segunda pinta.
   function render(paint) {
+    const th = theme();
     const probe = document.createElement('canvas').getContext('2d');
-    const h = paint(probe, false);
+    const h = paint(probe, false, th);
     const cv = document.createElement('canvas');
     cv.width = W; cv.height = Math.ceil(h);
     const ctx = cv.getContext('2d');
-    ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, cv.height);
-    paint(ctx, true);
+    ctx.fillStyle = th.bg; ctx.fillRect(0, 0, W, cv.height);
+    // Brilho suave da cor do dia no topo.
+    const g = ctx.createRadialGradient(W * 0.15, 0, 0, W * 0.15, 0, W * 0.9);
+    g.addColorStop(0, alpha(th.day, th.dark ? 0.22 : 0.16)); g.addColorStop(1, alpha(th.day, 0));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, Math.min(cv.height, 900));
+    ctx.textBaseline = 'alphabetic';
+    paint(ctx, true, th);
     return cv;
   }
 
-  function header(ctx, on, kicker, title, sub) {
+  function header(ctx, on, th, kicker, title, sub) {
+    const y = 96;
     if (on) {
-      ctx.fillStyle = C.accent; ctx.fillRect(0, 0, W, 260);
-      // Nomes longos (programa ou dia) encolhem até caber na largura.
-      const fit = (t, weight, size, min) => { do { ctx.font = weight + ' ' + size + 'px ' + COND; size -= 2; } while (ctx.measureText(t).width > W - PAD * 2 && size > min); };
-      ctx.fillStyle = 'rgba(255,255,255,.75)'; fit(kicker.toUpperCase(), 700, 30, 18); ctx.fillText(kicker.toUpperCase(), PAD, 82);
-      ctx.fillStyle = '#fff'; fit(title.toUpperCase(), 700, 84, 40); ctx.fillText(title.toUpperCase(), PAD, 170);
-      ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = '500 30px ' + FONT; ctx.fillText(sub, PAD, 222);
+      ctx.font = '600 24px ' + th.fb; spacing(ctx, 5); ctx.fillStyle = th.mute; ctx.fillText('CADERNO DE CARGAS', PAD, y);
+      const bw = ctx.measureText('CADERNO DE CARGAS').width;
+      spacing(ctx, 0); ctx.font = '500 26px ' + th.fb; ctx.fillStyle = th.faint; ctx.textAlign = 'right';
+      ctx.fillText(ellipsis(ctx, kicker, W - PAD * 2 - bw - 40), W - PAD, y); ctx.textAlign = 'left';
+      fit(ctx, title, 700, 136, 60, th.fd, W - PAD * 2); spacing(ctx, -2); ctx.fillStyle = th.ink; ctx.fillText(title, PAD, y + 160); spacing(ctx, 0);
+      box(ctx, PAD + 2, y + 190, 112, 10, 5, th.day);
+      ctx.font = '500 32px ' + th.fb; ctx.fillStyle = th.mute; ctx.fillText(sub, PAD, y + 256);
     }
-    return 260;
+    return y + 304;
   }
 
-  function footer(ctx, on, y, text) {
-    if (on) {
-      ctx.fillStyle = C.line; ctx.fillRect(PAD, y, W - PAD * 2, 2);
-      ctx.fillStyle = C.mute; ctx.font = '500 28px ' + FONT; ctx.fillText(text, PAD, y + 56);
-      ctx.fillStyle = C.accent2; ctx.font = '700 28px ' + COND; const b = 'CADERNO DE CARGAS';
-      ctx.fillText(b, W - PAD - ctx.measureText(b).width, y + 56);
-    }
-    return y + 96;
+  // Blocos de números (como os do painel), em grade.
+  function tiles(ctx, on, th, y, items, cols) {
+    const gap = 18, tw = (W - PAD * 2 - gap * (cols - 1)) / cols, h = 172;
+    items.forEach(([val, label, color], i) => {
+      const x = PAD + (i % cols) * (tw + gap), ty = y + Math.floor(i / cols) * (h + gap);
+      if (!on) return;
+      box(ctx, x, ty, tw, h, 32, th.card, th.line);
+      fit(ctx, val, 700, 68, 34, th.fn, tw - 56); spacing(ctx, -1); ctx.fillStyle = color || th.ink; ctx.fillText(val, x + 28, ty + 92); spacing(ctx, 0);
+      ctx.font = '500 26px ' + th.fb; ctx.fillStyle = th.mute; ctx.fillText(ellipsis(ctx, label, tw - 56), x + 28, ty + 138);
+    });
+    return y + Math.ceil(items.length / cols) * (h + gap) - gap;
   }
+
+  function section(ctx, on, th, y, text) {
+    if (on) { ctx.font = '600 23px ' + th.fb; spacing(ctx, 4); ctx.fillStyle = th.mute; ctx.fillText(text.toUpperCase(), PAD, y + 24); spacing(ctx, 0); }
+    return y + 50;
+  }
+
+  function footer(ctx, on, th, y, text) {
+    y += 44;
+    if (on) {
+      ctx.fillStyle = th.line; ctx.fillRect(PAD, y, W - PAD * 2, 2);
+      ctx.font = '500 27px ' + th.fb; ctx.fillStyle = th.mute; ctx.fillText(ellipsis(ctx, text, W - PAD * 2 - 330), PAD, y + 62);
+      ctx.font = '700 30px ' + th.fd; spacing(ctx, -0.5); const b = 'Caderno de Cargas', bw = ctx.measureText(b).width;
+      ctx.fillStyle = th.ink; ctx.fillText(b, W - PAD - bw, y + 62); spacing(ctx, 0);
+      box(ctx, W - PAD - bw - 26, y + 42, 14, 14, 7, th.day);
+    }
+    return y + 116;
+  }
+
+  const kgText = (n) => Math.round(n).toLocaleString('pt-BR') + ' kg';
 
   function workoutCard(v) {
-    return render((ctx, on) => {
-      const doc = v.doc || { ex: {} }, date = doc.t ? new Date(doc.t) : new Date();
-      let y = header(ctx, on, v.program, v.NAMES[v.day], 'Semana ' + v.week + ' · ' + date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }));
-      y += 56;
+    return render((ctx, on, th) => {
+      const doc = v.doc || { ex: {} }, t = CG.dayStatus(doc) ? CG.sessionTime(doc) : Date.now();
+      const date = new Date(t).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+      let y = header(ctx, on, th, v.program, v.NAMES[v.day], 'Semana ' + v.week + ' · ' + date);
       let total = 0, done = 0, vol = 0;
+      v.list.forEach((ex) => {
+        const e = doc.ex[ex.id]; total += ex.s;
+        for (let s = 0; s < ex.s; s++) { const st = e && e.sets[s]; if (st && st.done) { done++; vol += (parseFloat(String(st.kg).replace(',', '.')) || 0) * (parseFloat(st.reps) || 0); } }
+      });
+      const min = CG.sessionDuration(doc);
+      const k = [[done + '/' + total, 'séries feitas', done === total && total ? th.done : null], [vol ? kgText(vol) : '—', 'volume']];
+      if (min) k.push([min + ' min', 'duração']);
+      y = tiles(ctx, on, th, y, k, k.length) + 44;
       if (CG.dayStatus(doc) === 'skip') {
-        ctx.font = '600 40px ' + FONT;
-        if (on) { ctx.fillStyle = C.mute; ctx.fillText('Treino pulado', PAD, y + 20); }
+        if (on) { ctx.font = '600 40px ' + th.fd; ctx.fillStyle = th.mute; ctx.fillText('Treino pulado', PAD, y + 40); }
         y += 80;
       }
-      v.list.forEach((ex, i) => {
-        const e = doc.ex[ex.id], name = (e && e.used) || ex.n;
-        total += ex.s;
-        ctx.font = '700 40px ' + FONT;
-        const lines = wrap(ctx, name, W - PAD * 2 - 72);
-        if (on) {
-          ctx.fillStyle = C.card; ctx.beginPath(); ctx.arc(PAD + 24, y + 10, 26, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = C.mute; ctx.font = '700 28px ' + COND; ctx.textAlign = 'center'; ctx.fillText(String(i + 1), PAD + 24, y + 20); ctx.textAlign = 'left';
-          ctx.fillStyle = C.ink; ctx.font = '700 40px ' + FONT;
-          lines.forEach((l, j) => ctx.fillText(l, PAD + 72, y + 24 + j * 50));
-        }
-        y += 24 + (lines.length - 1) * 50 + 22;
-        const sets = [];
-        for (let s = 0; s < ex.s; s++) {
-          const st = e && e.sets[s];
-          if (st && st.done) { done++; vol += (parseFloat(String(st.kg).replace(',', '.')) || 0) * (parseFloat(st.reps) || 0); }
-          if (st && (st.kg || st.reps)) sets.push(st);
-        }
-        ctx.font = '500 34px ' + FONT;
-        let x = PAD + 72;
-        if (!sets.length) {
+      y = section(ctx, on, th, y, 'Exercícios');
+      // Um cartão com os exercícios em linhas, como na tela: mede primeiro, pinta o cartão e depois o conteúdo.
+      const inner = PAD + 36, nameX = inner + 78, maxX = W - PAD - 36;
+      const rows = (on, y) => {
+        v.list.forEach((ex, i) => {
+          const e = doc.ex[ex.id], name = (e && e.used) || ex.n;
           const det = CG.exDetails(ex, window.BTS_EXTRA, v.week, v.day), tech = det.tec && window.CGTips && CGTips.TECH[det.tec];
-          const info = [ex.s + ' séries · ' + ex.r + ' reps', det.rpeUlt ? 'RPE ' + det.rpeUlt : '', tech ? tech.short : ''].filter(Boolean).join(' · ');
-          if (on) { ctx.fillStyle = C.mute; ctx.fillText(info, x, y + 30); }
-          y += 52;
-        } else {
-          y += 4;
-          sets.forEach((st) => {
-            const t = (st.kg ? String(st.kg).replace('.', ',') + ' kg' : '—') + ' × ' + (st.reps || '—') + (st.done ? '  ✓' : '');
-            const w = ctx.measureText(t).width + 36;
-            if (x + w > W - PAD) { x = PAD + 72; y += 66; }
-            if (on) {
-              ctx.fillStyle = st.done ? 'rgba(95,213,147,.14)' : C.card;
-              ctx.beginPath(); ctx.roundRect(x, y, w, 54, 12); ctx.fill();
-              ctx.fillStyle = st.done ? C.done : C.mute; ctx.fillText(t, x + 18, y + 38);
-            }
-            x += w + 12;
-          });
-          y += 66;
+          const tcol = tech && tech.color ? tech.color[th.dark ? 1 : 0] : th.accent;
+          if (i && on) { ctx.fillStyle = th.line; ctx.fillRect(inner, y - 26, maxX - inner, 2); }
+          ctx.font = '650 38px ' + th.fd;
+          const lines = wrap(ctx, name, maxX - nameX);
+          if (on) {
+            const full = e && Object.keys(e.sets || {}).length && [...Array(ex.s).keys()].every((s) => e.sets[s] && e.sets[s].done);
+            box(ctx, inner, y - 4, 54, 54, 27, full ? th.done : th.card2, full ? null : th.line);
+            ctx.font = '700 26px ' + th.fn; ctx.textAlign = 'center'; ctx.fillStyle = full ? th.card : th.mute; ctx.fillText(String(i + 1), inner + 27, y + 32); ctx.textAlign = 'left';
+            ctx.font = '650 38px ' + th.fd; spacing(ctx, -0.5); ctx.fillStyle = th.ink;
+            lines.forEach((l, j) => ctx.fillText(l, nameX, y + 34 + j * 48)); spacing(ctx, 0);
+          }
+          y += 34 + (lines.length - 1) * 48 + 26;
+          const sets = [];
+          for (let s = 0; s < ex.s; s++) { const st = e && e.sets[s]; if (st && (st.kg || st.reps)) sets.push([st, s === ex.s - 1]); }
+          if (!sets.length) {
+            ctx.font = '500 28px ' + th.fb;
+            const info = [ex.s + ' séries · ' + ex.r + ' reps', tech ? 'última: ' + tech.short : ''].filter(Boolean).join(' · ');
+            if (on) { ctx.fillStyle = th.mute; ctx.fillText(ellipsis(ctx, info, maxX - nameX), nameX, y + 20); }
+            y += 40;
+          } else {
+            let x = nameX;
+            ctx.font = '600 30px ' + th.fn;
+            sets.forEach(([st, last]) => {
+              const txt = (st.kg ? String(st.kg).replace('.', ',') : '—') + ' × ' + (st.reps || '—');
+              const w = ctx.measureText(txt).width + 44;
+              if (x + w > maxX) { x = nameX; y += 70; }
+              if (on) {
+                const lastTec = last && tech;
+                box(ctx, x, y - 6, w, 56, 28, st.done ? th.doneBg : th.card2, lastTec ? tcol : null);
+                ctx.font = '600 30px ' + th.fn; ctx.fillStyle = st.done ? th.done : th.mute; ctx.fillText(txt, x + 22, y + 32);
+              }
+              x += w + 12;
+            });
+            y += 62;
+            if (tech && on) { ctx.font = '600 22px ' + th.fb; spacing(ctx, 2); ctx.fillStyle = tcol; ctx.fillText(('Última série · ' + tech.short).toUpperCase(), nameX, y + 18); spacing(ctx, 0); }
+            if (tech) y += 34;
+          }
+          y += 50;
+        });
+        return y;
+      };
+      const top = y, bottom = rows(false, y + 36) - 14;
+      if (on) box(ctx, PAD, top, W - PAD * 2, bottom - top, 40, th.card, th.line);
+      rows(on, y + 36);
+      y = bottom;
+      // Anotação do treino, inteira (até 4 linhas), num bloco próprio.
+      if (doc.note) {
+        y += 36;
+        ctx.font = '500 32px ' + th.fb;
+        const nl = wrap(ctx, String(doc.note).replace(/\s+/g, ' ').trim(), W - PAD * 2 - 64).slice(0, 4);
+        const nh = 44 + nl.length * 44 + 20;
+        if (on) {
+          box(ctx, PAD, y, W - PAD * 2, nh, 32, th.card2, null);
+          box(ctx, PAD, y, 8, nh, 4, th.day);
+          ctx.fillStyle = th.ink; ctx.font = '500 32px ' + th.fb;
+          nl.forEach((l, j) => ctx.fillText((j === 0 ? '“' : '') + l + (j === nl.length - 1 ? '”' : ''), PAD + 40, y + 62 + j * 44));
         }
-        y += 26;
-      });
-      y += 10;
-      const min = CG.sessionDuration(doc);
-      return footer(ctx, on, y, done + ' de ' + total + ' séries' + (vol ? ' · ' + Math.round(vol).toLocaleString('pt-BR') + ' kg' : '') + (min ? ' · ' + min + ' min' : ''));
+        y += nh;
+      }
+      const note = doc.energy ? 'Energia ' + doc.energy + ' / 5' : 'Mais um treino no caderno.';
+      return footer(ctx, on, th, y, note);
     });
   }
 
   function weekCard(v, wk) {
-    return render((ctx, on) => {
+    return render((ctx, on, th) => {
       const end = new Date(wk.start + 6 * 86400000);
-      let y = header(ctx, on, v.program, 'Minha semana', shortDate(wk.start) + ' a ' + end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
-      y += 48;
-      const k = [[String(wk.sessions), wk.sessions === 1 ? 'treino' : 'treinos'], [wk.sets + '', 'séries'], [Math.round(wk.volume / 100) / 10 + ' t', 'volume'], [String(wk.records), 'recordes']];
-      const kw = (W - PAD * 2 - 3 * 20) / 4;
-      if (on) k.forEach(([b, t], i) => {
-        const x = PAD + i * (kw + 20);
-        ctx.fillStyle = C.card; ctx.beginPath(); ctx.roundRect(x, y, kw, 150, 18); ctx.fill();
-        ctx.fillStyle = C.ink; ctx.font = '700 60px ' + COND; ctx.fillText(b.replace('.', ','), x + 24, y + 82);
-        ctx.fillStyle = C.mute; ctx.font = '500 28px ' + FONT; ctx.fillText(t, x + 24, y + 124);
-      });
-      y += 190;
-      // Dias da semana: bolinha cheia nos dias treinados.
-      const marks = CG.calendar(v.logs), names = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'], cw = (W - PAD * 2) / 7;
+      let y = header(ctx, on, th, v.program, 'Minha semana', shortDate(wk.start) + ' a ' + shortDate(end));
+      y = tiles(ctx, on, th, y, [[String(wk.sessions), wk.sessions === 1 ? 'treino' : 'treinos'], [String(wk.sets), 'séries'],
+        [wk.volume ? kgText(wk.volume) : '—', 'volume'], [String(wk.records), wk.records === 1 ? 'recorde' : 'recordes', wk.records ? th.accent : null]], 2) + 44;
+      y = section(ctx, on, th, y, 'Dias');
+      const marks = CG.calendar(v.logs), names = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], h = 210;
+      if (on) box(ctx, PAD, y, W - PAD * 2, h, 40, th.card, th.line);
+      const cw = (W - PAD * 2 - 48) / 7;
       names.forEach((n, i) => {
-        const iso = CG.isoDay(wk.start + i * 86400000 + 12 * 3600000), cx = PAD + cw * i + cw / 2, st = marks[iso];
-        if (on) {
-          ctx.beginPath(); ctx.arc(cx, y + 40, 34, 0, Math.PI * 2);
-          if (st === 'done') { ctx.fillStyle = C.done; ctx.fill(); }
-          else if (st === 'skip') { ctx.setLineDash([6, 5]); ctx.strokeStyle = C.mute; ctx.lineWidth = 3; ctx.stroke(); ctx.setLineDash([]); }
-          else { ctx.fillStyle = C.card; ctx.fill(); }
-          ctx.fillStyle = C.mute; ctx.font = '600 24px ' + FONT; ctx.textAlign = 'center'; ctx.fillText(n, cx, y + 112); ctx.textAlign = 'left';
-        }
+        const iso = CG.isoDay(wk.start + i * 86400000 + 12 * 3600000), cx = PAD + 24 + cw * i + cw / 2, st = marks[iso];
+        if (!on) return;
+        ctx.beginPath(); ctx.arc(cx, y + 86, 40, 0, Math.PI * 2);
+        if (st === 'done') { ctx.fillStyle = th.done; ctx.fill(); ctx.strokeStyle = th.card; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(cx - 14, y + 87); ctx.lineTo(cx - 3, y + 98); ctx.lineTo(cx + 16, y + 76); ctx.stroke(); }
+        else if (st === 'skip') { ctx.setLineDash([7, 6]); ctx.strokeStyle = th.faint; ctx.lineWidth = 3; ctx.stroke(); ctx.setLineDash([]); }
+        else { ctx.fillStyle = th.card2; ctx.fill(); ctx.strokeStyle = th.line; ctx.lineWidth = 2; ctx.stroke(); }
+        ctx.font = '500 25px ' + th.fb; ctx.fillStyle = st === 'done' ? th.ink : th.mute; ctx.textAlign = 'center'; ctx.fillText(n, cx, y + 170); ctx.textAlign = 'left';
       });
-      y += 150;
-      return footer(ctx, on, y, wk.energy ? 'Energia média ' + String(wk.energy).replace('.', ',') + ' / 5' : 'Bora pra próxima!');
+      y += h;
+      return footer(ctx, on, th, y, wk.energy ? 'Energia média ' + String(wk.energy).replace('.', ',') + ' / 5' : 'Bora pra próxima!');
     });
   }
 
+  // Minigráfico de linha (evolução da carga).
+  function spark(ctx, th, pts, x, y, w, h) {
+    const vs = pts.map((p) => p.kg), lo = Math.min(...vs), hi = Math.max(...vs), r = hi - lo || 1;
+    const px = (i) => x + (pts.length === 1 ? w / 2 : (i / (pts.length - 1)) * w), py = (kv) => y + h - ((kv - lo) / r) * h;
+    ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(px(i), py(p.kg)) : ctx.moveTo(px(i), py(p.kg))));
+    ctx.strokeStyle = th.day; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(px(pts.length - 1), py(vs[vs.length - 1]), 7, 0, Math.PI * 2); ctx.fillStyle = th.day; ctx.fill();
+  }
+
   function progressCard(v, sum, prog) {
-    return render((ctx, on) => {
-      let y = header(ctx, on, v.program, 'Progresso', new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
-      y += 48;
-      // Números grandes.
-      const k = [[sum.done + '/' + sum.total, 'treinos'], [String(sum.skipped), 'pulados'], [String(sum.streak), 'seguidos'], [Math.round((sum.done / sum.total) * 100) + '%', 'concluído']];
-      const kw = (W - PAD * 2 - 3 * 20) / 4;
-      if (on) k.forEach(([b, t], i) => {
-        const x = PAD + i * (kw + 20);
-        ctx.fillStyle = C.card; ctx.beginPath(); ctx.roundRect(x, y, kw, 150, 18); ctx.fill();
-        ctx.fillStyle = C.ink; ctx.font = '700 60px ' + COND; ctx.fillText(b, x + 24, y + 82);
-        ctx.fillStyle = C.mute; ctx.font = '500 28px ' + FONT; ctx.fillText(t, x + 24, y + 124);
-      });
-      y += 190;
+    return render((ctx, on, th) => {
+      let y = header(ctx, on, th, v.program, 'Progresso', new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
+      y = tiles(ctx, on, th, y, [[sum.done + '/' + sum.total, 'treinos feitos'], [Math.round((sum.done / sum.total) * 100) + '%', 'do programa', th.accent],
+        [String(sum.streak), 'seguidos sem pular'], [String(sum.skipped), 'pulados']], 2) + 44;
       // Grade semanas × dias.
-      const cols = v.ORDER.length, lw = 70, gap = 8, cw = Math.min(220, (W - PAD * 2 - lw - gap * (cols - 1)) / cols), ch = Math.max(18, Math.min(34, 520 / v.WEEKS));
-      ctx.font = '600 24px ' + FONT;
-      if (on) v.ORDER.forEach((d, i) => {
-        ctx.fillStyle = C.mute;
-        const t = wrap(ctx, v.NAMES[d], cw)[0];
-        ctx.fillText(t.length < v.NAMES[d].length ? t.slice(0, -1) + '…' : t, PAD + lw + i * (cw + gap), y + 20);
-      });
-      y += 40;
+      y = section(ctx, on, th, y, 'Programa');
+      const cols = v.ORDER.length, lw = 74, gap = 8, inner = PAD + 32, cw = (W - PAD * 2 - 64 - lw - gap * (cols - 1)) / cols, ch = Math.max(16, Math.min(34, 520 / v.WEEKS));
+      const gh = 32 + 44 + v.WEEKS * (ch + gap) - gap + 32;
+      if (on) box(ctx, PAD, y, W - PAD * 2, gh, 40, th.card, th.line);
+      let gy = y + 32;
+      ctx.font = '500 24px ' + th.fb;
+      if (on) v.ORDER.forEach((d, i) => { ctx.fillStyle = th.mute; ctx.textAlign = 'center'; ctx.fillText(ellipsis(ctx, v.NAMES[d], cw), inner + lw + i * (cw + gap) + cw / 2, gy + 22); ctx.textAlign = 'left'; });
+      gy += 44;
       for (let w = 1; w <= v.WEEKS; w++) {
         if (on) {
-          ctx.fillStyle = C.mute; ctx.font = '600 ' + Math.min(24, ch - 4) + 'px ' + FONT; ctx.fillText('S' + w, PAD, y + ch - 6);
+          ctx.fillStyle = th.faint; ctx.font = '600 ' + Math.min(22, ch - 2) + 'px ' + th.fn; ctx.fillText('S' + w, inner, gy + ch - 5);
           v.ORDER.forEach((d, i) => {
-            const st = CG.dayStatus(v.logs[w + '-' + d]), x = PAD + lw + i * (cw + gap);
-            ctx.beginPath(); ctx.roundRect(x, y, cw, ch, 6);
-            if (st === 'done') { ctx.fillStyle = C.done; ctx.fill(); }
-            else if (st === 'skip') { ctx.setLineDash([6, 5]); ctx.strokeStyle = C.mute; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]); }
-            else { ctx.fillStyle = C.card; ctx.fill(); }
+            const st = CG.dayStatus(v.logs[w + '-' + d]), x = inner + lw + i * (cw + gap);
+            ctx.beginPath(); ctx.roundRect(x, gy, cw, ch, Math.min(10, ch / 2));
+            if (st === 'done') { ctx.fillStyle = th.done; ctx.fill(); }
+            else if (st === 'skip') { ctx.setLineDash([6, 5]); ctx.strokeStyle = th.faint; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]); }
+            else { ctx.fillStyle = th.card2; ctx.fill(); }
           });
         }
-        y += ch + gap;
+        gy += ch + gap;
       }
-      y += 40;
-      // Destaques de evolução.
+      y += gh + 44;
+      // Destaques de evolução, com minigráfico.
       const top = prog.filter((e) => e.points.length > 1).slice(0, 6);
       if (top.length) {
-        if (on) { ctx.fillStyle = C.mute; ctx.font = '700 30px ' + COND; ctx.fillText('EVOLUÇÃO', PAD, y + 24); }
-        y += 60;
-        top.forEach((e) => {
+        y = section(ctx, on, th, y, 'Evolução');
+        const rh = 104, eh = top.length * rh + 24;
+        if (on) box(ctx, PAD, y, W - PAD * 2, eh, 40, th.card, th.line);
+        let ey = y + 12;
+        top.forEach((e, i) => {
           const a = e.points[0], z = e.points[e.points.length - 1], d = z.kg - a.kg;
-          const right = fmtKg(a.kg) + ' → ' + fmtKg(z.kg) + ' kg' + (d ? ' (' + (d > 0 ? '+' : '') + fmtKg(d) + ')' : '');
-          ctx.font = '600 32px ' + FONT;
-          const rw = ctx.measureText(right).width;
-          ctx.font = '500 32px ' + FONT;
-          let name = e.name;
-          while (ctx.measureText(name).width > W - PAD * 2 - rw - 30 && name.length > 4) name = name.slice(0, -2);
-          if (name !== e.name) name = name.slice(0, -1) + '…';
           if (on) {
-            ctx.fillStyle = C.ink; ctx.fillText(name, PAD, y + 30);
-            ctx.font = '600 32px ' + FONT; ctx.fillStyle = d > 0 ? C.done : C.mute; ctx.fillText(right, W - PAD - rw, y + 30);
+            if (i) { ctx.fillStyle = th.line; ctx.fillRect(PAD + 32, ey, W - PAD * 2 - 64, 2); }
+            ctx.font = '700 32px ' + th.fn; const val = fmtKg(z.kg) + ' kg', vw = ctx.measureText(val).width;
+            ctx.fillStyle = th.ink; ctx.textAlign = 'right'; ctx.fillText(val, W - PAD - 32, ey + 50);
+            ctx.font = '600 24px ' + th.fb; ctx.fillStyle = d > 0 ? th.done : th.mute;
+            ctx.fillText(d ? (d > 0 ? '+' : '') + fmtKg(d) + ' kg desde ' + fmtKg(a.kg) : 'manteve ' + fmtKg(a.kg), W - PAD - 32, ey + 84); ctx.textAlign = 'left';
+            spark(ctx, th, e.points.slice(-12), W - PAD - 32 - Math.max(vw, 230) - 150, ey + 26, 120, 50);
+            ctx.font = '600 30px ' + th.fd; ctx.fillStyle = th.ink;
+            ctx.fillText(ellipsis(ctx, e.name, W - PAD * 2 - 64 - Math.max(vw, 230) - 190), PAD + 32, ey + 50);
+            ctx.font = '500 24px ' + th.fb; ctx.fillStyle = th.mute; ctx.fillText(e.points.length + ' treinos · ' + z.reps + ' reps', PAD + 32, ey + 84);
           }
-          y += 54;
+          ey += rh;
         });
-        y += 20;
+        y += eh;
       }
       const last = sum.last ? 'Último treino: ' + new Date(sum.last.t).toLocaleDateString('pt-BR') : 'Nenhum treino ainda';
-      return footer(ctx, on, y, last);
+      return footer(ctx, on, th, y, last);
     });
   }
 
@@ -399,8 +493,10 @@
   }
 
   window.CGProgress = {
-    shareWorkout: () => share(workoutCard(app.view()), 'treino-' + CG.isoDay(Date.now()) + '.png'),
-    workoutCard: () => workoutCard(app.view()), progressCard: () => { const v = app.view(); return progressCard(v, CG.summarize(v.logs, v.ORDER, v.WEEKS), CG.exerciseProgress(v.logs)); } };
+    shareWorkout: () => fontsReady().then(() => share(workoutCard(app.view()), 'treino-' + CG.isoDay(Date.now()) + '.png')),
+    fontsReady,
+    workoutCard: () => workoutCard(app.view()), progressCard: () => { const v = app.view(); return progressCard(v, CG.summarize(v.logs, v.ORDER, v.WEEKS), CG.exerciseProgress(v.logs)); },
+    weekCard: () => { const v = app.view(); return weekCard(v, CG.weekSummary(v.logs, Date.now())); } };
 
   btn.addEventListener('click', () => { panel.hidden = !panel.hidden; if (!panel.hidden) draw(); });
   app.saved.push(() => { if (!panel.hidden) draw(); });

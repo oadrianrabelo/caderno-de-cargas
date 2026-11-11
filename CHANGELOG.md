@@ -2,6 +2,14 @@
 
 Mudanças do Caderno de Cargas por versão. Gerado de `www/changelog.js` com `npm run changelog`.
 
+## v0.4.3 (2026-11-11)
+
+- Imagens de compartilhar refeitas no visual novo: seguem o tema e as fontes da Aparência (claro ou escuro), com cartões arredondados, cor do dia, indicadores em blocos e a cor da técnica na última série.
+- Imagem do treino: séries feitas, volume e duração no topo, exercícios em lista e a anotação do treino inteira, num bloco próprio.
+- Imagem do progresso: grade do programa e evolução de cada exercício com minigráfico.
+- Correção: a etiqueta da técnica da última série (ex.: Along. estático) ficava atrás do campo de carga. Agora fica numa faixa no topo da série, com o nome inteiro.
+- Alarme do descanso: o toque (agora em dois tons, mais suave) é agendado no início do descanso, para tocar mesmo se o celular deixar o app lento com a tela apagada.
+
 ## v0.4.2 (2026-11-10)
 
 - Correção: com uma folha aberta (Progresso, Programas, Aparência…), tocar em Editar ou Modo foco mudava a tela por baixo e a folha continuava por cima. Agora a folha fecha antes.
